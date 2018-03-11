@@ -179,10 +179,11 @@ function(add_python_extension name)
                 COMPILE_DEFINITIONS "${ADD_PYTHON_EXTENSION_DEFINITIONS}")
         endif(ADD_PYTHON_EXTENSION_DEFINITIONS)
 
-        install(TARGETS ${target_name}
-                ARCHIVE DESTINATION ${ARCHIVEDIR}
-                LIBRARY DESTINATION ${EXTENSION_INSTALL_DIR}
-                RUNTIME DESTINATION ${EXTENSION_INSTALL_DIR})
+        # XXX Uncomment when CMake >= 2.8.8 is required
+        #install(TARGETS ${target_name}
+        #        ARCHIVE DESTINATION ${ARCHIVEDIR}
+        #        LIBRARY DESTINATION ${EXTENSION_INSTALL_DIR}
+        #        RUNTIME DESTINATION ${EXTENSION_INSTALL_DIR})
     endif(BUILTIN_${upper_name})
 endfunction(add_python_extension)
 
