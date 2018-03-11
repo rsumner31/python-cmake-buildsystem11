@@ -162,6 +162,53 @@ message(STATUS "${_msg} - ${SOABI}")
 
 endif()
 
+if(IS_PY3)
+set(_msg "Checking WITH_HASH_ALGORITHM option")
+message(STATUS "${_msg}")
+if(WITH_HASH_ALGORITHM STREQUAL "default")
+  set(Py_HASH_ALGORITHM 0)
+elseif(WITH_HASH_ALGORITHM STREQUAL "siphash24")
+  set(Py_HASH_ALGORITHM 1)
+elseif(WITH_HASH_ALGORITHM STREQUAL "fnv")
+  set(Py_HASH_ALGORITHM 2)
+else()
+  message(FATAL_ERROR "Unknown hash algorithm '${Py_HASH_ALGORITHM}'")
+endif()
+message(STATUS "${_msg} [${WITH_HASH_ALGORITHM}]")
+
+# ABI version string for Python extension modules.  This appears between the
+# periods in shared library file names, e.g. foo.<SOABI>.so.  It is calculated
+# from the following attributes which affect the ABI of this Python build (in
+# this order):
+#
+# * The Python implementation (always 'cpython-' for us)
+# * The major and minor version numbers
+# * --with-pydebug (adds a 'd')
+# * --with-pymalloc (adds a 'm')
+# * --with-wide-unicode (adds a 'u')
+#
+# Thus for example, Python 3.2 built with wide unicode, pydebug, and pymalloc,
+# would get a shared library ABI version tag of 'cpython-32dmu' and shared
+# libraries would be named 'foo.cpython-32dmu.so'.
+set(_msg "Checking ABIFLAGS")
+set(ABIFLAGS )
+if(Py_DEBUG)
+  set(ABIFLAGS "${ABIFLAGS}d")
+endif()
+if(WITH_PYMALLOC)
+  set(ABIFLAGS "${ABIFLAGS}m")
+endif()
+message(STATUS "${_msg} - ${ABIFLAGS}")
+
+set(_msg "Checking SOABI")
+string(TOLOWER ${CMAKE_SYSTEM_NAME} lc_system_name)
+# XXX This should be improved.
+set(PLATFORM_TRIPLET "${CMAKE_SYSTEM_PROCESSOR}-${lc_system_name}")
+set(SOABI "cpython-${PY_VERSION_MAJOR}${PY_VERSION_MINOR}${ABIFLAGS}-${PLATFORM_TRIPLET}")
+message(STATUS "${_msg} - ${SOABI}")
+
+endif(IS_PY3)
+
 macro(ADD_COND var cond item)
   if(${cond})
     set(${var} ${${var}} ${item})
@@ -1178,6 +1225,57 @@ endif()
 
 endif()
 
+if(IS_PY3)
+
+check_function_exists(clock_getres HAVE_CLOCK_GETRES)
+if(NOT HAVE_CLOCK_GETRES)
+  cmake_push_check_state()
+  set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_lib_rt_clock_getres.c)
+  file(WRITE ${check_src} "/* Override any GCC internal prototype to avoid an error.
+  Use char because int might match the return type of a GCC
+  builtin and then its argument prototype would still apply.  */
+  #ifdef __cplusplus
+  extern \"C\"
+  #endif
+  char clock_getres ();
+  int main () { return clock_getres (); }
+  ")
+  list(APPEND CMAKE_REQUIRED_LIBRARIES rt)
+  python_platform_test(
+    HAVE_CLOCK_GETRES
+    "Checking for clock_getres in -lrt"
+    ${check_src}
+    DIRECT
+    )
+  cmake_pop_check_state()
+endif()
+
+check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
+if(NOT HAVE_CLOCK_GETTIME)
+  cmake_push_check_state()
+  set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_lib_rt_clock_gettime.c)
+  file(WRITE ${check_src} "/* Override any GCC internal prototype to avoid an error.
+    Use char because int might match the return type of a GCC
+    builtin and then its argument prototype would still apply.  */
+    #ifdef __cplusplus
+    extern \"C\"
+    #endif
+    char clock_gettime ();
+    int main () { return clock_gettime (); }
+  ")
+  list(APPEND CMAKE_REQUIRED_LIBRARIES rt)
+  python_platform_test(
+    HAVE_CLOCK_GETTIME
+    "Checking for clock_gettime in -lrt"
+    ${check_src}
+    DIRECT
+    )
+  cmake_pop_check_state()
+  set(TIMEMODULE_LIB rt)
+endif()
+
+endif(IS_PY3)
+
 #######################################################################
 #
 # unicode 
@@ -2058,6 +2156,167 @@ python_platform_test(
   )
 
 endif()
+
+if(IS_PY3)
+
+# Define if aligned memory access is required
+set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/aligned_required.c)
+file(WRITE ${check_src} "int main()
+{
+    char s[16];
+    int i, *p1, *p2;
+    for (i=0; i < 16; i++)
+        s[i] = i;
+    p1 = (int*)(s+1);
+    p2 = (int*)(s+2);
+    if (*p1 == *p2)
+        return 1;
+    return 0;
+}
+")
+python_platform_test_run(
+  HAVE_ALIGNED_REQUIRED
+  "Checking aligned memory access is required"
+  ${check_src}
+  INVERT
+  )
+
+# Define if mbstowcs(NULL, "text", 0) does not return the number of wide
+# chars that would be converted.
+set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_broken_mbstowcs.c)
+file(WRITE ${check_src} "#include <stdio.h>
+#include<stdlib.h>
+int main() {
+    size_t len = -1;
+    const char *str = \"text\";
+    len = mbstowcs(NULL, str, 0);
+    return (len != 4);
+}
+")
+python_platform_test_run(
+  HAVE_BROKEN_MBSTOWCS
+  "Checking for broken mbstowcs"
+  ${check_src}
+  INVERT
+  )
+
+# Check whether the compiler supports computed gotos
+set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_computed_gotos.c)
+file(WRITE ${check_src} "int main(int argc, char **argv)
+  {
+      static void *targets[1] = { &&LABEL1 };
+      goto LABEL2;
+  LABEL1:
+      return 0;
+  LABEL2:
+      goto *targets[0];
+      return 1;
+  }
+")
+python_platform_test_run(
+  HAVE_COMPUTED_GOTOS
+  "Checking whether ${CMAKE_C_COMPILER_ID} supports computed gotos"
+  ${check_src}
+  DIRECT
+  )
+
+# Availability of -O2
+cmake_push_check_state()
+list(APPEND CMAKE_REQUIRED_DEFINITIONS -O2)
+check_c_source_compiles("int main () {return 0;}" have_O2)
+cmake_pop_check_state()
+
+# _FORTIFY_SOURCE wrappers for memmove and bcopy are incorrect:
+# http://sourceware.org/ml/libc-alpha/2010-12/msg00009.html
+set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_glibc_memmove_bug.c)
+file(WRITE ${check_src} "#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+void foo(void *p, void *q) { memmove(p, q, 19); }
+int main() {
+  char a[32] = \"123456789000000000\";
+  foo(&a[9], a);
+  if (strcmp(a, \"123456789123456789000000000\") != 0)
+    return 1;
+  foo(a, &a[9]);
+  if (strcmp(a, \"123456789000000000\") != 0)
+    return 1;
+  return 0;
+}
+")
+cmake_push_check_state()
+add_cond(CMAKE_REQUIRED_DEFINITIONS have_O2 "-O2;-D_FORTIFY_SOURCE=2")
+python_platform_test_run(
+  HAVE_GLIBC_MEMMOVE_BUG
+  "Checking for glibc _FORTIFY_SOURCE/memmove bug"
+  ${check_src}
+  INVERT
+  )
+cmake_pop_check_state()
+
+# HAVE_IPA_PURE_CONST_BUG
+if(HAVE_GCC_ASM_FOR_X87 AND CMAKE_COMPILER_IS_GNUCC)
+  # Some versions of gcc miscompile inline asm:
+  # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=46491
+  # http://gcc.gnu.org/ml/gcc/2010-11/msg00366.html
+  set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_ipa_pure_const_bug.c)
+  file(WRITE ${check_src} "__attribute__((noinline)) int
+  foo(int *p) {
+    int r;
+    asm ( \"movl \\$6, (%1)\\n\\t\"
+          \"xorl %0, %0\\n\\t\"
+          : \"=r\" (r) : \"r\" (p) : \"memory\"
+    );
+    return r;
+  }
+  int main() {
+    int p = 8;
+    if ((foo(&p) ? : p) != 6)
+      return 1;
+    return 0;
+  }
+  ")
+  python_platform_test_run(
+    HAVE_IPA_PURE_CONST_BUG
+    "Checking for gcc ipa-pure-const bug"
+    ${check_src}
+    INVERT
+    )
+endif()
+
+# Check for stdatomic.h
+set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_stdatomic_h.c)
+file(WRITE ${check_src} "#include <stdatomic.h>
+atomic_int value = ATOMIC_VAR_INIT(1);
+_Atomic void *py_atomic_address = (void*) &value;
+int main() {
+  int loaded_value = atomic_load(&value);
+  return 0;
+}
+")
+python_platform_test(
+  HAVE_STD_ATOMIC
+  "Checking for stdatomic.h"
+  ${check_src}
+  DIRECT
+  )
+
+# Has builtin atomics
+set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_builtin_atomic.c)
+file(WRITE ${check_src} "volatile int val = 1;
+int main() {
+  __atomic_load_n(&val, __ATOMIC_SEQ_CST);
+  return 0;
+}
+")
+python_platform_test(
+  HAVE_BUILTIN_ATOMIC
+  "Checking for GCC >= 4.7 __atomic builtins"
+  ${check_src}
+  DIRECT
+  )
+
+endif(IS_PY3)
 
 if(HAVE_LONG_LONG)
   # Checking for %lld and %llu printf() format support

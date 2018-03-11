@@ -30,6 +30,11 @@ endif()
 # XXX Following modules are missing:
 # lzma
 
+# XXX Following modules are missing:
+#  _decimal
+# xxlimited + Py_LIMITED_API
+# lzma
+
 add_python_extension(array ${MSVC_BUILTIN} SOURCES arraymodule.c)
 add_python_extension(audioop ${MSVC_BUILTIN} SOURCES audioop.c)
 add_python_extension(_bisect ${MSVC_BUILTIN} SOURCES _bisectmodule.c)
@@ -474,6 +479,8 @@ else()
         INCLUDEDIRS ${SRC_DIR}/Modules/expat
     )
 endif()
+
+if(IS_PY2)
 
 if(IS_PY2)
 
