@@ -97,7 +97,11 @@ function(add_python_extension name)
         if(${ext} STREQUAL ".S")
             add_assembler(absolute_sources Modules/${source} ${ADD_PYTHON_EXTENSION_INCLUDEDIRS})
         else(${ext} STREQUAL ".S")
-            list(APPEND absolute_sources ${CMAKE_SOURCE_DIR}/Modules/${source})
+            set(absolute_src ${source})
+            if(NOT IS_ABSOLUTE ${source})
+                set(absolute_src ${SRC_DIR}/Modules/${source})
+            endif(NOT IS_ABSOLUTE ${source})
+            list(APPEND absolute_sources ${absolute_src})
         endif(${ext} STREQUAL ".S")
     endforeach(source)
 
@@ -177,8 +181,8 @@ function(add_python_extension name)
 
         install(TARGETS ${target_name}
                 ARCHIVE DESTINATION ${ARCHIVEDIR}
-                LIBRARY DESTINATION ${DYNLOAD}
-                RUNTIME DESTINATION ${DYNLOAD})
+                LIBRARY DESTINATION ${EXTENSION_INSTALL_DIR}
+                RUNTIME DESTINATION ${EXTENSION_INSTALL_DIR})
     endif(BUILTIN_${upper_name})
 endfunction(add_python_extension)
 

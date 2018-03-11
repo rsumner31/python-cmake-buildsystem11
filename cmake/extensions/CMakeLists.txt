@@ -53,9 +53,9 @@ add_python_extension(crypt REQUIRES HAVE_LIBCRYPT SOURCES ${crypt${PY_VERSION_MA
 add_python_extension(cStringIO ${MSVC_BUILTIN} REQUIRES IS_PY2 SOURCES cStringIO.c)
 add_python_extension(_csv ${MSVC_BUILTIN} SOURCES _csv.c)
 add_python_extension(_ctypes_test SOURCES _ctypes/_ctypes_test.c)
-add_python_extension(datetime REQUIRES HAVE_LIBM SOURCES datetimemodule.c timemodule.c LIBRARIES m)
-if(ENABLE_DATETIME)
-    set_property(SOURCE ${CMAKE_SOURCE_DIR}/Modules/datetimemodule.c PROPERTY COMPILE_FLAGS -Wno-unused-value)
+add_python_extension(datetime REQUIRES HAVE_LIBM SOURCES datetimemodule.c timemodule.c LIBRARIES ${M_LIBRARIES})
+if(ENABLE_DATETIME AND UNIX)
+    set_property(SOURCE ${SRC_DIR}/Modules/datetimemodule.c PROPERTY COMPILE_FLAGS -Wno-unused-value)
 endif()
 add_python_extension(${datetime${PY_VERSION_MAJOR}_NAME} ${MSVC_DATETIME} REQUIRES HAVE_LIBM BUILTIN SOURCES ${datetime${PY_VERSION_MAJOR}_SOURCES} LIBRARIES ${M_LIBRARIES})
 #if(ENABLE_DATETIME AND CMAKE_C_COMPILER_ID MATCHES GNU)
@@ -124,7 +124,7 @@ add_python_extension(zipimport ALWAYS_BUILTIN REQUIRES IS_PY3 SOURCES zipimport.
 # UNIX-only extensions
 add_python_extension(fcntl REQUIRES UNIX SOURCES fcntlmodule.c)
 add_python_extension(grp REQUIRES UNIX SOURCES grpmodule.c)
-add_python_extension(nis REQUIRES UNIX HAVE_LIBNSL SOURCES nismodule.c LIBRARIES nsl)
+add_python_extension(nis REQUIRES UNIX HAVE_LIBNSL SOURCES nismodule.c LIBRARIES ${HAVE_LIBNSL})
 add_python_extension(posix REQUIRES UNIX BUILTIN SOURCES posixmodule.c)
 add_python_extension(pwd REQUIRES UNIX BUILTIN SOURCES pwdmodule.c)
 add_python_extension(resource REQUIRES UNIX SOURCES resource.c)
@@ -132,11 +132,24 @@ add_python_extension(spwd REQUIRES UNIX HAVE_GETSPNAM HAVE_GETSPENT SOURCES spwd
 add_python_extension(syslog REQUIRES UNIX SOURCES syslogmodule.c)
 add_python_extension(termios REQUIRES UNIX SOURCES termios.c)
 
+# MacOSX-only extensions
+add_python_extension(_scproxy
+    REQUIRES APPLE HAVE_LIBSYSTEMCONFIGURATION
+    SOURCES ${SRC_DIR}/Mac/Modules/_scproxy.c
+    LIBRARIES ${HAVE_LIBSYSTEMCONFIGURATION}
+)
+
 # Linux-only extensions
 add_python_extension(linuxaudiodev REQUIRES LINUX SOURCES linuxaudiodev.c)
 add_python_extension(ossaudiodev REQUIRES LINUX SOURCES ossaudiodev.c)
 
 # Windows-only extensions
+add_python_extension(_msi
+    REQUIRES WIN32 BUILTIN
+    SOURCES ${SRC_DIR}/PC/_msi.c
+    LIBRARIES cabinet.lib msi.lib rpcrt4.lib
+)
+add_python_extension(msvcrt REQUIRES MSVC BUILTIN SOURCES ${SRC_DIR}/PC/msvcrtmodule.c)
 add_python_extension(nt REQUIRES WIN32 BUILTIN SOURCES posixmodule.c)
 add_python_extension(_subprocess REQUIRES WIN32 IS_PY2 BUILTIN SOURCES ${SRC_DIR}/PC/_subprocess.c)
 
@@ -278,8 +291,6 @@ else()
                     _ctypes/cfield.c
                     _ctypes/libffi/src/closures.c
                     _ctypes/libffi/src/dlmalloc.c
-                    _ctypes/libffi/src/x86/ffi.c
-                    _ctypes/libffi/src/x86/ffi64.c
                     _ctypes/libffi/src/prep_cif.c
                     _ctypes/stgdict.c
                     _ctypes/libffi/src/${_libffi_system_dir}/ffi.c
@@ -413,7 +424,7 @@ endif()
 
 # Build expat using the system expat if it's installed, otherwise use the
 # builtin version.
-if(EXPAT_FOUND)
+if(EXPAT_LIBRARIES AND EXPAT_INCLUDE_DIRS)
     add_python_extension(pyexpat
         SOURCES pyexpat.c
         LIBRARIES ${EXPAT_LIBRARIES}
@@ -436,8 +447,8 @@ else()
                 expat/xmlparse.c
                 expat/xmlrole.c
                 expat/xmltok.c
-        DEFINITIONS ${_pyexpat_definitions} #HAVE_EXPAT_CONFIG_H=1
-        INCLUDEDIRS ${CMAKE_SOURCE_DIR}/Modules/expat
+        DEFINITIONS ${_pyexpat_definitions}
+        INCLUDEDIRS ${SRC_DIR}/Modules/expat
     )
     set(_elementtree_definitions USE_PYEXPAT_CAPI)
     if(MSVC)
@@ -445,10 +456,10 @@ else()
     endif()
     add_python_extension(_elementtree
         SOURCES _elementtree.c
-        DEFINITIONS ${_elementtree_definitions} #USE_PYEXPAT_CAPI HAVE_EXPAT_CONFIG_H=1
-        INCLUDEDIRS ${CMAKE_SOURCE_DIR}/Modules/expat
+        DEFINITIONS ${_elementtree_definitions}
+        INCLUDEDIRS ${SRC_DIR}/Modules/expat
     )
-endif(EXPAT_FOUND)
+endif(EXPAT_LIBRARIES AND EXPAT_INCLUDE_DIRS)
 
 if(IS_PY2)
 
@@ -477,18 +488,29 @@ add_python_extension(_sha512 ${MSVC_BUILTIN} SOURCES sha512module.c)
 
 endif()
 
-add_python_extension(_md5 REQUIRES OPENSSL_NOT_FOUND SOURCES md5.c md5module.c)
-add_python_extension(_sha REQUIRES OPENSSL_NOT_FOUND SOURCES shamodule.c)
-add_python_extension(_sha256 REQUIRES OPENSSL_NOT_FOUND SOURCES sha256module.c)
-add_python_extension(_sha512 REQUIRES OPENSSL_NOT_FOUND SOURCES sha512module.c)
+add_python_extension(_md5 REQUIRES HASH_NOT_AVAILABLE SOURCES md5.c md5module.c)
+add_python_extension(_sha REQUIRES HASH_NOT_AVAILABLE SOURCES shamodule.c)
+add_python_extension(_sha256 REQUIRES HASH_NOT_AVAILABLE SOURCES sha256module.c)
+add_python_extension(_sha512 REQUIRES HASH_NOT_AVAILABLE SOURCES sha512module.c)
 
 # Extensions that depend on other libraries
+set(binascii_REQUIRES "")
+set(binascii_DEFINITIONS "")
+set(binascii_LIBRARIES "")
+set(binascii_INCLUDEDIRS "")
+if(ZLIB_LIBRARY)
+  list(APPEND binascii_REQUIRES ZLIB_INCLUDE_DIR)
+  list(APPEND binascii_DEFINITIONS USE_ZLIB_CRC32)
+  list(APPEND binascii_LIBRARIES ${ZLIB_LIBRARY})
+  list(APPEND binascii_INCLUDEDIRS ${ZLIB_INCLUDE_DIR})
+endif()
 add_python_extension(binascii
     REQUIRES ${binascii_REQUIRES}
     ${MSVC_BUILTIN}
     SOURCES binascii.c
-    DEFINITIONS USE_ZLIB_CRC32
-    LIBRARIES ${ZLIB_LIBRARIES}
+    DEFINITIONS ${binascii_DEFINITIONS}
+    LIBRARIES ${binascii_LIBRARIES}
+    INCLUDEDIRS ${binascii_INCLUDEDIRS}
 )
 add_python_extension(_bsddb
     REQUIRES DB_INCLUDE_PATH DB_LIBRARIES
@@ -497,7 +519,7 @@ add_python_extension(_bsddb
     INCLUDEDIRS ${DB_INCLUDE_PATH}
 )
 add_python_extension(bz2
-    REQUIRES BZIP2_FOUND
+    REQUIRES BZIP2_LIBRARIES
     SOURCES bz2module.c
     LIBRARIES ${BZIP2_LIBRARIES}
 )
@@ -530,15 +552,16 @@ add_python_extension(gdbm
     INCLUDEDIRS ${GDBM_INCLUDE_PATH}
 )
 add_python_extension(_hashlib
-    REQUIRES OPENSSL_FOUND
+    REQUIRES OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES
     SOURCES _hashopenssl.c
     LIBRARIES ${OPENSSL_LIBRARIES}
+    INCLUDEDIRS ${OPENSSL_INCLUDE_DIR}
 )
 if(ENABLE_HASHLIB AND UNIX)
-    set_property(SOURCE ${CMAKE_SOURCE_DIR}/Modules/_hashopenssl.c PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations)
+    set_property(SOURCE ${SRC_DIR}/Modules/_hashopenssl.c PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations)
 endif()
 add_python_extension(readline
-    REQUIRES READLINE_INCLUDE_PATH READLINE_LIBRARY CURSES_FOUND
+    REQUIRES READLINE_INCLUDE_PATH READLINE_LIBRARY CURSES_LIBRARIES
     SOURCES readline.c
     LIBRARIES ${READLINE_LIBRARY} ${CURSES_LIBRARIES}
     INCLUDEDIRS ${READLINE_INCLUDE_PATH}
@@ -559,24 +582,30 @@ add_python_extension(_sqlite3
     LIBRARIES ${SQLITE3_LIBRARY}
 )
 if(ENABLE_SQLITE3 AND UNIX)
-    set_property(SOURCE ${CMAKE_SOURCE_DIR}/Modules/_sqlite/module.c PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations)
+    set_property(SOURCE ${SRC_DIR}/Modules/_sqlite/module.c PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations)
+endif()
+set(_ssl_LIBRARIES ${OPENSSL_LIBRARIES})
+if(WIN32)
+    list(APPEND _ssl_LIBRARIES ws2_32)
 endif()
 add_python_extension(_ssl
-    REQUIRES OPENSSL_FOUND
+    REQUIRES OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES
     SOURCES _ssl.c
-    LIBRARIES ${OPENSSL_LIBRARIES}
+    LIBRARIES ${_ssl_LIBRARIES}
+    INCLUDEDIRS ${OPENSSL_INCLUDE_DIR}
 )
 add_python_extension(_tkinter
-    REQUIRES TK_FOUND TCL_FOUND
+    REQUIRES TCL_LIBRARY TK_LIBRARY TCL_INCLUDE_PATH TK_INCLUDE_PATH
     SOURCES _tkinter.c tkappinit.c
     DEFINITIONS WITH_APPINIT=1
     LIBRARIES ${TCL_LIBRARY} ${TK_LIBRARY}
     INCLUDEDIRS ${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH}
 )
 add_python_extension(zlib
-    REQUIRES ZLIB_FOUND
+    REQUIRES ZLIB_LIBRARY ZLIB_INCLUDE_DIR
     SOURCES zlibmodule.c
-    LIBRARIES ${ZLIB_LIBRARIES}
+    LIBRARIES ${ZLIB_LIBRARY}
+    INCLUDEDIRS ${ZLIB_INCLUDE_DIR}
 )
 
 if(USE_LIBEDIT)

@@ -12,12 +12,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release")
 endif()
 
-project(Python${PY_MAJOR_VERSION}${PY_MINOR_VERSION} C)
+project(Python${PY_VERSION_MAJOR}${PY_VERSION_MINOR} C)
 
 # Include helper functions
 include(cmake/Assembler.cmake)
 include(cmake/Extensions.cmake)
+include(CMakeDependentOption)
 include(CMakeParseArguments)
+include(CTest)
 
 # Options
 option(DOWNLOAD_SOURCES "Automatically download the Python sources" ON)
@@ -261,7 +263,7 @@ set(LIBPYTHON_LIBDIR ${LIBDIR})
 set(LIBPYTHON_ARCHIVEDIR ${LIBDIR})
 set(LIBPYTHON_STATIC_ARCHIVEDIR ${LIBDIR})
 if(WIN32)
-    set(LIBPYTHON_LIBDIR ${BINDIR})
+    set(LIBPYTHON_LIBDIR ${BIN_INSTALL_DIR})
     set(LIBPYTHON_ARCHIVEDIR ${ARCHIVEDIR})
     set(LIBPYTHON_STATIC_ARCHIVEDIR static-${ARCHIVEDIR})
 endif()
@@ -295,12 +297,25 @@ include_directories(${CMAKE_SOURCE_DIR}/Include)
 include_directories(${CMAKE_SOURCE_DIR}/Python)
 
 if(UNIX)
-    configure_file(${CMAKE_SOURCE_DIR}/cmake/config-unix/pyconfig.h.in
-                   ${CMAKE_BINARY_DIR}/${BINDIR}/pyconfig.h)
-    include_directories(${CMAKE_BINARY_DIR}/${BINDIR})
+    set(PYCONFIG_BUILD_DIR ${BIN_BUILD_DIR})
+    configure_file(cmake/config-unix/pyconfig.h.in
+                   ${PYCONFIG_BUILD_DIR}/pyconfig.h)
 elseif(WIN32)
-    include_directories(${CMAKE_SOURCE_DIR}/PC)
+    set(PYCONFIG_BUILD_DIR ${SRC_DIR}/PC) # In a windows build tree, 'pyconfig.h' is NOT required to
+                                          # live along side the python executable.
+                                          # See function '_init_posix()' and '_init_non_posix()'
+                                          # in 'Lib/sysconfig.py'
 endif(UNIX)
+
+# Install 'pyconfig.h'
+install(FILES ${PYCONFIG_BUILD_DIR}/pyconfig.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/)
+
+# Set include directories
+include_directories(cmake)
+include_directories(${INCLUDE_BUILD_DIR})
+include_directories(${PYCONFIG_BUILD_DIR})
+include_directories(${SRC_DIR}/Python)
 
 # Set cflags used by all components
 if(UNIX)
@@ -341,7 +356,7 @@ set(builtin_includedirs "" CACHE INTERNAL "" FORCE)
 set(builtin_definitions "" CACHE INTERNAL "" FORCE)
 set(extensions_enabled "" CACHE INTERNAL "" FORCE)
 set(extensions_disabled "" CACHE INTERNAL "" FORCE)
-add_subdirectory(cmake/extensions)
+add_subdirectory(cmake/extensions CMakeBuild/extensions)
 
 # Add the other subdirectories
 add_subdirectory(cmake/libpython CMakeBuild/libpython)
