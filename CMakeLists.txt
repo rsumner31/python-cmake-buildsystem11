@@ -12,26 +12,12 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release")
 endif()
 
-if(APPLE)
-  set(_msg "Checking which MACOSX_DEPLOYMENT_TARGET to use")
-  message(STATUS "${_msg}")
-  include(cmake/PythonAutoDetectOSX.cmake)
-  set(MACOSX_DEPLOYMENT_TARGET ${CMAKE_OSX_DEPLOYMENT_TARGET})
-  message(STATUS "${_msg} - ${MACOSX_DEPLOYMENT_TARGET}")
-endif()
-
-project(Python C ASM)
-
-if(POLICY CMP0042)
-    cmake_policy(SET CMP0042 OLD)
-endif()
+project(Python${PY_MAJOR_VERSION}${PY_MINOR_VERSION} C)
 
 # Include helper functions
-include(cmake/CMakeChecks.cmake)
+include(cmake/Assembler.cmake)
 include(cmake/Extensions.cmake)
-include(CMakeDependentOption)
 include(CMakeParseArguments)
-include(CTest)
 
 # Options
 option(DOWNLOAD_SOURCES "Automatically download the Python sources" ON)
@@ -93,6 +79,7 @@ cmake_dependent_option(USE_LIBEDIT "Use libedit instead of readline" OFF
 option(WITH_TSC "profile with the Pentium timestamp counter" OFF)
 option(ENABLE_IPV6 "Enable IP v6" ON)
 option(WITH_DOC_STRINGS "Enable if you want documentation strings in extension modules" ON)
+option(Py_USING_UNICODE "Enable unicode support" ON)
 set(Py_DEBUG OFF) # TODO - Build debugging interpreter
 option(WITH_PYMALLOC "Define if you want to compile in Python-specific mallocs" ON)
 option(WITH_THREAD "Compile in rudimentary thread support" ON)
@@ -274,7 +261,7 @@ set(LIBPYTHON_LIBDIR ${LIBDIR})
 set(LIBPYTHON_ARCHIVEDIR ${LIBDIR})
 set(LIBPYTHON_STATIC_ARCHIVEDIR ${LIBDIR})
 if(WIN32)
-    set(LIBPYTHON_LIBDIR ${BIN_INSTALL_DIR})
+    set(LIBPYTHON_LIBDIR ${BINDIR})
     set(LIBPYTHON_ARCHIVEDIR ${ARCHIVEDIR})
     set(LIBPYTHON_STATIC_ARCHIVEDIR static-${ARCHIVEDIR})
 endif()
@@ -298,47 +285,42 @@ endif()
 install(FILES ${PYCONFIG_BUILD_DIR}/pyconfig.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/)
 
+find_path(SQLITE3_INCLUDE_PATH sqlite3.h)
+find_library(SQLITE3_LIBRARY sqlite3)
+
 # Set include directories
-include_directories(${INCLUDE_BUILD_DIR})
-include_directories(${PYCONFIG_BUILD_DIR})
-include_directories(${SRC_DIR}/Python)
+include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/cmake)
+include_directories(${CMAKE_SOURCE_DIR}/Include)
+include_directories(${CMAKE_SOURCE_DIR}/Python)
+
+if(UNIX)
+    configure_file(${CMAKE_SOURCE_DIR}/cmake/config-unix/pyconfig.h.in
+                   ${CMAKE_BINARY_DIR}/${BINDIR}/pyconfig.h)
+    include_directories(${CMAKE_BINARY_DIR}/${BINDIR})
+elseif(WIN32)
+    include_directories(${CMAKE_SOURCE_DIR}/PC)
+endif(UNIX)
 
 # Set cflags used by all components
-if(CMAKE_C_COMPILER_ID MATCHES GNU)
-    append_if_absent(CMAKE_C_FLAGS "-Wall")
-    append_if_absent(CMAKE_C_FLAGS "-Wstrict-prototypes")
-    append_if_absent(CMAKE_C_FLAGS "-fno-strict-aliasing")
-    append_if_absent(CMAKE_C_FLAGS "-fwrapv")
-    append_if_absent(CMAKE_C_FLAGS "-g")
-elseif(CMAKE_C_COMPILER_ID MATCHES Clang)
-    append_if_absent(CMAKE_C_FLAGS "-Wall")
-    append_if_absent(CMAKE_C_FLAGS "-g")
-elseif(CMAKE_C_COMPILER_ID MATCHES Intel)
-    append_if_absent(CMAKE_C_FLAGS "-Wall")
-    append_if_absent(CMAKE_C_FLAGS "-no-ansi-alias")
-elseif(CMAKE_C_COMPILER_ID MATCHES PGI)
-    append_if_absent(CMAKE_C_FLAGS "-alias=traditional")
-endif()
-
+if(UNIX)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing -fwrapv -Wall -Wstrict-prototypes")
+endif(UNIX)
 if(MSVC)
-    append_if_absent(CMAKE_C_FLAGS "/Zm200")
     string(REPLACE "/Ob2" "/Ob1" CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE}) # InlineFunctionExpansion=1
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "Flags used by the compiler during release builds" FORCE)
-endif()
+endif(MSVC)
 
-if(NOT HAVE_POSITION_INDEPENDENT_CODE AND NOT WIN32)
-    append_if_absent(CMAKE_C_FLAGS "-fPIC")
-endif()
+if(NOT WIN32)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+endif(NOT WIN32)
 
 # Useful additional variables that extensions can use.
 if(UNIX AND NOT APPLE)
     set(LINUX ON)
-else()
+else(UNIX AND NOT APPLE)
     set(LINUX OFF)
-endif()
-
-# Clear PythonTargets.cmake
-file(WRITE ${CONFIG_BUILD_DIR}/PythonTargets.cmake "")
+endif(UNIX AND NOT APPLE)
 
 # Define python executable wrapper command to ensure
 # python executable resolves the expected python library.
@@ -352,9 +334,14 @@ if(BUILD_SHARED AND UNIX)
 endif()
 
 # Add extension modules
+set(builtin_extensions "" CACHE INTERNAL "" FORCE)
+set(builtin_source "" CACHE INTERNAL "" FORCE)
+set(builtin_link_libraries "" CACHE INTERNAL "" FORCE)
+set(builtin_includedirs "" CACHE INTERNAL "" FORCE)
+set(builtin_definitions "" CACHE INTERNAL "" FORCE)
 set(extensions_enabled "" CACHE INTERNAL "" FORCE)
 set(extensions_disabled "" CACHE INTERNAL "" FORCE)
-add_subdirectory(cmake/extensions CMakeBuild/extensions)
+add_subdirectory(cmake/extensions)
 
 # Add the other subdirectories
 add_subdirectory(cmake/libpython CMakeBuild/libpython)

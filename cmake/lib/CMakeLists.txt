@@ -1,18 +1,18 @@
 # Install all the python module source from Lib/
 
-set(libdir ${SRC_DIR}/Lib)
+set(libdir ${CMAKE_SOURCE_DIR}/Lib)
 file(GLOB_RECURSE libfiles RELATIVE ${libdir} "${libdir}/*")
 
 if(UNIX)
     set(plat_subdir "plat-linux2")
-endif()
+endif(UNIX)
 
 foreach(file ${libfiles})
     # Don't install files for other platforms
     string(REGEX MATCH "^plat-" is_platform_file "${file}")
     if(plat_subdir)
         string(REGEX MATCH "^${plat_subdir}" is_matching_platform_file "${file}")
-    endif()
+    endif(plat_subdir)
 
     # Exclude tests if BUILD_TESTING is OFF
     string(REGEX MATCH "^test" is_test "${file}")
@@ -31,23 +31,12 @@ foreach(file ${libfiles})
         # Install
         install(FILES ${libdir}/${file} DESTINATION ${PYTHONHOME}/${path})
 
-    endif()
-endforeach()
+    endif(NOT is_platform_file OR is_matching_platform_file)
+endforeach(file)
 
-if(PY_VERSION VERSION_LESS "2.7.5")
-  # Setup landmark allowing to run the interpreter from a build tree. See 'getpath.c' for details.
-  file(MAKE_DIRECTORY ${BIN_BUILD_DIR}/Modules)
-  file(WRITE ${BIN_BUILD_DIR}/Modules/Setup "")
-endif()
+# Setup landmark allowing to run the interpreter from a build tree. See 'getpath.c' for details.
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/${BINDIR}/Modules)
+file(WRITE ${CMAKE_BINARY_DIR}/${BINDIR}/Modules/Setup "")
 
-# Generate grammar tables in install directory
-# XXX Should a custom target be added to generate file at built time ?
-install(CODE "find_program(
-  PYTHON_EXECUTABLE python
-  HINTS \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${BIN_INSTALL_DIR}
-  NO_DEFAULT_PATH)
-execute_process(COMMAND \${PYTHON_EXECUTABLE} -m lib2to3.pgen2.driver
-  \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PYTHONHOME}/lib2to3/Grammar.txt)
-execute_process(COMMAND \${PYTHON_EXECUTABLE} -m lib2to3.pgen2.driver
-  \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PYTHONHOME}/lib2to3/PatternGrammar.txt)
-")
+# See "is_python_build()" in sysconfig.py
+file(WRITE ${CMAKE_BINARY_DIR}/${BINDIR}/Modules/Setup.local "")

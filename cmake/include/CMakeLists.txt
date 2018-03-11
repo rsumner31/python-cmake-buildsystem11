@@ -1,6 +1,6 @@
 # Install all the header files in Include/
 
-set(includedir ${INCLUDE_BUILD_DIR})
+set(includedir ${CMAKE_SOURCE_DIR}/Include)
 file(GLOB_RECURSE hfiles RELATIVE ${includedir} "${includedir}/*")
 
 foreach(file ${hfiles})

@@ -107,8 +107,6 @@ if(USE_SYSTEM_SQLITE3)
 endif()
 
 if(WIN32)
-  set(M_LIBRARIES )
-  set(HAVE_LIBM 1)
   # From PC/pyconfig.h: 
   #  This is a manually maintained version used for the Watcom,
   #  Borland and Microsoft Visual C++ compilers.  It is a
@@ -212,16 +210,8 @@ endif(IS_PY3)
 macro(ADD_COND var cond item)
   if(${cond})
     set(${var} ${${var}} ${item})
-  endif()
-endmacro()
-
-set(CMAKE_REQUIRED_DEFINITIONS )
-
-# Convenient macro allowing to conditonally update CMAKE_REQUIRED_DEFINITIONS
-macro(set_required_def var value)
-  set(${var} ${value})
-  list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D${var}=${value}")
-endmacro()
+  endif(${cond})
+endmacro(ADD_COND)
 
 # Emulate AC_HEADER_DIRENT
 check_include_files(dirent.h HAVE_DIRENT_H)
@@ -229,10 +219,7 @@ if(NOT HAVE_DIRENT_H)
   check_include_files(sys/ndir.h HAVE_SYS_NDIR_H)
   check_type_exists(DIR sys/dir.h HAVE_SYS_DIR_H)
   check_include_files(ndir.h HAVE_NDIR_H)
-endif()
-if(IS_PY3)
-  check_symbol_exists("dirfd" "sys/types.h;dirent.h" HAVE_DIRFD)
-endif()
+endif(NOT HAVE_DIRENT_H)
 
 check_include_files(alloca.h HAVE_ALLOCA_H)
 check_include_files(asm/types.h HAVE_ASM_TYPES_H)
@@ -276,11 +263,9 @@ endif()
 check_include_files(memory.h HAVE_MEMORY_H)
 check_include_files(minix/config.h HAVE_MINIX_CONFIG_H)
 check_include_files(ncurses.h HAVE_NCURSES_H)
-check_include_files(ncurses/panel.h HAVE_NCURSES_PANEL_H)
 check_include_files(netdb.h HAVE_NETDB_H)
 check_include_files(netinet/in.h HAVE_NETINET_IN_H)
 check_include_files(netpacket/packet.h HAVE_NETPACKET_PACKET_H)
-check_include_files(panel.h HAVE_PANEL_H)
 check_include_files(poll.h HAVE_POLL_H)
 check_include_files(process.h HAVE_PROCESS_H)
 check_include_files(pthread.h HAVE_PTHREAD_H)
@@ -323,7 +308,6 @@ check_include_files(sys/utsname.h HAVE_SYS_UTSNAME_H)
 check_include_files(sys/wait.h HAVE_SYS_WAIT_H)
 check_include_files(termios.h HAVE_TERMIOS_H)
 check_include_files(term.h HAVE_TERM_H)
-if(IS_PY2)
 check_include_files(thread.h HAVE_THREAD_H)
 endif()
 check_include_files(unistd.h HAVE_UNISTD_H)
@@ -374,9 +358,6 @@ set(M_LIBRARIES ${HAVE_LIBM})
 find_library(HAVE_LIBNCURSES ncurses)
 find_library(HAVE_LIBNSL nsl)
 find_library(HAVE_LIBREADLINE readline)
-if(IS_PY3)
-find_library(HAVE_LIBSENDFILE sendfile)
-endif()
 find_library(HAVE_LIBTERMCAP termcap)
 find_library(HAVE_LIBUTIL    util)
 
@@ -388,221 +369,40 @@ if(WITH_THREAD)
   set(CMAKE_HAVE_PTHREAD_H ${HAVE_PTHREAD_H}) # Skip checking for header a second time.
   find_package(Threads)
   if(CMAKE_HAVE_LIBC_CREATE)
-    set_required_def(_REENTRANT 1)
+    set(_REENTRANT 1)
   endif()
 endif()
 
-if(IS_PY3)
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_lib_crypto_RAND_egd.c)
-file(WRITE ${check_src} "/* Override any GCC internal prototype to avoid an error.
-  Use char because int might match the return type of a GCC
-  builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern \"C\"
-#endif
-char RAND_egd ();
-int main () { return RAND_egd (); }
-")
-cmake_push_check_state()
-list(APPEND CMAKE_REQUIRED_LIBRARIES crypto)
-python_platform_test(
-  HAVE_RAND_EGD
-  "Checking for RAND_egd in -lcrypto"
-  ${check_src}
-  DIRECT
-  )
-cmake_pop_check_state()
-endif()
+set(_FILE_OFFSET_BITS 64)
+set(_LARGEFILE_SOURCE 1)
 
-set_required_def(_GNU_SOURCE 1)       # Define on Linux to activate all library features
-set_required_def(_NETBSD_SOURCE 1)    # Define on NetBSD to activate all library features
-set_required_def(__BSD_VISIBLE 1)     # Define on FreeBSD to activate all library features
-set_required_def(_BSD_TYPES 1)        # Define on Irix to enable u_int
-set_required_def(_DARWIN_C_SOURCE 1)  # Define on Darwin to activate all library features
+set(__BSD_VISIBLE 1)
+set(_BSD_TYPES 1)
+set(__EXTENSIONS__ 1)
+set(_GNU_SOURCE 1)
+set(_NETBSD_SOURCE 1)
 
-set_required_def(_ALL_SOURCE 1)       # Enable extensions on AIX 3, Interix.
-set_required_def(_POSIX_PTHREAD_SEMANTICS 1) # Enable threading extensions on Solaris.
-set_required_def(_TANDEM_SOURCE 1)    # Enable extensions on HP NonStop.
+if(CMAKE_SYSTEM MATCHES OpenBSD)
+  set(_BSD_SOURCE 1)
+endif(CMAKE_SYSTEM MATCHES OpenBSD)
 
-set_required_def(__EXTENSIONS__ 1)    # Defined on Solaris to see additional function prototypes.
-
-
-if(HAVE_MINIX_CONFIG_H)
-  set_required_def(_POSIX_SOURCE 1)   # Define to 1 if you need to in order for 'stat' and other things to work.
-  set_required_def(_POSIX_1_SOURCE 2) # Define to 2 if the system does not provide POSIX.1 features except with this defined.
-  set_required_def(_MINIX 1)          # Define to 1 if on MINIX.
-endif()
-
-message(STATUS "Checking for XOPEN_SOURCE")
-
-# Some systems cannot stand _XOPEN_SOURCE being defined at all; they
-# disable features if it is defined, without any means to access these
-# features as extensions. For these systems, we skip the definition of
-# _XOPEN_SOURCE. Before adding a system to the list to gain access to
-# some feature, make sure there is no alternative way to access this
-# feature. Also, when using wildcards, make sure you have verified the
-# need for not defining _XOPEN_SOURCE on all systems matching the
-# wildcard, and that the wildcard does not include future systems
-# (which may remove their limitations).
 set(define_xopen_source 1)
-
-# On OpenBSD, select(2) is not available if _XOPEN_SOURCE is defined,
-# even though select is a POSIX function. Reported by J. Ribbens.
-# Reconfirmed for OpenBSD 3.3 by Zachary Hamm, for 3.4 by Jason Ish.
-# In addition, Stefan Krah confirms that issue #1244610 exists through
-# OpenBSD 4.6, but is fixed in 4.7.
-if(CMAKE_SYSTEM MATCHES "OpenBSD\\-2\\."
-   OR CMAKE_SYSTEM MATCHES "OpenBSD\\-3\\."
-   OR CMAKE_SYSTEM MATCHES "OpenBSD\\-4\\.[0-6]$")
-
-  #OpenBSD/2.* | OpenBSD/3.* | OpenBSD/4.@<:@0123456@:>@
-
+if(APPLE)
   set(define_xopen_source 0)
-
-  # OpenBSD undoes our definition of __BSD_VISIBLE if _XOPEN_SOURCE is
-  # also defined. This can be overridden by defining _BSD_SOURCE
-  # As this has a different meaning on Linux, only define it on OpenBSD
-  set_required_def(_BSD_SOURCE 1)     # Define on OpenBSD to activate all library features
-
-elseif(CMAKE_SYSTEM MATCHES OpenBSD)
-
-  # OpenBSD/*
-
-  # OpenBSD undoes our definition of __BSD_VISIBLE if _XOPEN_SOURCE is
-  # also defined. This can be overridden by defining _BSD_SOURCE
-  # As this has a different meaning on Linux, only define it on OpenBSD
-  set_required_def(_BSD_SOURCE 1)     # Define on OpenBSD to activate all library features
-
-elseif(CMAKE_SYSTEM MATCHES "NetBSD\\-1\\.5$"
-       OR CMAKE_SYSTEM MATCHES "NetBSD\\-1\\.5\\."
-       OR CMAKE_SYSTEM MATCHES "NetBSD\\-1\\.6$"
-       OR CMAKE_SYSTEM MATCHES "NetBSD\\-1\\.6\\."
-       OR CMAKE_SYSTEM MATCHES "NetBSD\\-1\\.6[A-S]$")
-
-  # NetBSD/1.5 | NetBSD/1.5.* | NetBSD/1.6 | NetBSD/1.6.* | NetBSD/1.6@<:@A-S@:>@
-
-  # Defining _XOPEN_SOURCE on NetBSD version prior to the introduction of
-  # _NETBSD_SOURCE disables certain features (eg. setgroups). Reported by
-  # Marc Recht
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES SunOS)
-
-  # SunOS/*)
-
-  # From the perspective of Solaris, _XOPEN_SOURCE is not so much a
-  # request to enable features supported by the standard as a request
-  # to disable features not supported by the standard.  The best way
-  # for Python to use Solaris is simply to leave _XOPEN_SOURCE out
-  # entirely and define __EXTENSIONS__ instead.
-
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES "OpenUNIX\\-8\\.0\\.0$"
-       OR CMAKE_SYSTEM MATCHES "UnixWare\\-7\\.1\\.[0-4]$")
-
-  # OpenUNIX/8.0.0| UnixWare/7.1.@<:@0-4@:>@
-
-  # On UnixWare 7, u_long is never defined with _XOPEN_SOURCE,
-  # but used in /usr/include/netinet/tcp.h. Reported by Tim Rice.
-  # Reconfirmed for 7.1.4 by Martin v. Loewis.
-
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES "SCO_SV\\-3\\.2$")
-
-  # SCO_SV/3.2
-
-  # On OpenServer 5, u_short is never defined with _XOPEN_SOURCE,
-  # but used in struct sockaddr.sa_family. Reported by Tim Rice.
-
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES "FreeBSD\\-4\\.")
-
-  # FreeBSD/4.*
-
-  # On FreeBSD 4, the math functions C89 does not cover are never defined
-  # with _XOPEN_SOURCE and __BSD_VISIBLE does not re-enable them.
-
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES "Darwin\\-[6789]\\."
-       OR CMAKE_SYSTEM MATCHES "Darwin\\-1[0-9]\\.")
-
-  # Darwin/@<:@6789@:>@.*)
-  # Darwin/1@<:@0-9@:>@.*
-
-  # On MacOS X 10.2, a bug in ncurses.h means that it craps out if
-  # _XOPEN_EXTENDED_SOURCE is defined. Apparently, this is fixed in 10.3, which
-  # identifies itself as Darwin/7.*
-  # On Mac OS X 10.4, defining _POSIX_C_SOURCE or _XOPEN_SOURCE
-  # disables platform specific features beyond repair.
-  # On Mac OS X 10.3, defining _POSIX_C_SOURCE or _XOPEN_SOURCE
-  # has no effect, don't bother defining them
-
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES "AIX\\-4$"
-       OR CMAKE_SYSTEM MATCHES "AIX\\-5\\.1$")
-  # On AIX 4 and 5.1, mbstate_t is defined only when _XOPEN_SOURCE == 500 but
-  # used in wcsnrtombs() and mbsnrtowcs() even if _XOPEN_SOURCE is not defined
-  # or has another value. By not (re)defining it, the defaults come in place.
-
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES "QNX\\-6\\.3\\.2$")
-
-  # QNX/6.3.2
-
-  # On QNX 6.3.2, defining _XOPEN_SOURCE prevents netdb.h from
-  # defining NI_NUMERICHOST.
-
-  set(define_xopen_source 0)
-
-elseif(CMAKE_SYSTEM MATCHES "VxWorks\\-7$")
-
-  # VxWorks-7
-
-  # On VxWorks-7, defining _XOPEN_SOURCE or _POSIX_C_SOURCE 
-  # leads to a failure in select.h because sys/types.h fails
-  # to define FD_SETSIZE.
-  # Reported by Martin Oberhuber as V7COR-4651.
-
-  set(define_xopen_source 0)
-
 endif()
 
 if(define_xopen_source)
-  message(STATUS "Checking for XOPEN_SOURCE - yes")
-  set_required_def(_XOPEN_SOURCE_EXTENDED 1) # Define to activate Unix95-and-earlier features
-  if(IS_PY2)
-    set_required_def(_XOPEN_SOURCE 600)        # Define to the level of X/Open that your system supports
-    set_required_def(_POSIX_C_SOURCE 200112L)  # Define to activate features from IEEE Stds 1003.1-2001
-  else()
-    set_required_def(_XOPEN_SOURCE 700)        # Define to the level of X/Open that your system supports
-    set_required_def(_POSIX_C_SOURCE 200809L)  # Define to activate features from IEEE Stds 1003.1-2008
-  endif()
-else()
-  message(STATUS "Checking for XOPEN_SOURCE - no")
+  set(_XOPEN_SOURCE 600)
+  set(_XOPEN_SOURCE_EXTENDED 1)
+  set(_POSIX_C_SOURCE 200112L)
 endif()
 
-
-message(STATUS "Checking for Large File Support")
-set(use_lfs 1)  # Consider disabling "lfs" if porting to Solaris (2.6 to 9) with gcc 2.95.
-                # See associated test in configure.in
-if(use_lfs)
-  message(STATUS "Checking for Large File Support - yes")
-  if(CMAKE_SYSTEM MATCHES AIX)
-    set_required_def(_LARGE_FILES 1)        # This must be defined on AIX systems to enable large file support.
-  endif()
-  set_required_def(_LARGEFILE_SOURCE 1)     # This must be defined on some systems to enable large file support.
-  set_required_def(_FILE_OFFSET_BITS 64)    # This must be set to 64 on some systems to enable large file support.
-else()
-  message(STATUS "Checking for Large File Support - no")
-endif()
-
-# CMAKE_EXTRA_INCLUDE_FILES is used in CheckTypeSize
+set(CMAKE_REQUIRED_DEFINITIONS 
+  -D_FILE_OFFSET_BITS=${_FILE_OFFSET_BITS}
+  -D_GNU_SOURCE=${_GNU_SOURCE}
+  -D_BSD_TYPES=${_BSD_TYPES}
+  -DNETBSD_SOURCE=${_NETBSD_SOURCE}
+  -D__BSD_VISIBLE=${__BSD_VISIBLE})
 set(CMAKE_EXTRA_INCLUDE_FILES stdio.h)
 
 add_cond(CMAKE_REQUIRED_LIBRARIES HAVE_LIBM ${M_LIBRARIES})
@@ -622,7 +422,6 @@ set(HAVE_LONG_DOUBLE ${SIZEOF_LONG_DOUBLE})
 check_type_size("long long" SIZEOF_LONG_LONG)
 set(HAVE_LONG_LONG ${SIZEOF_LONG_LONG})
 check_type_size(off_t SIZEOF_OFF_T)
-check_type_size(pid_t SIZEOF_PID_T)
 check_type_size(pthread_t SIZEOF_PTHREAD_T)
 check_type_size(short SIZEOF_SHORT)
 check_type_size(size_t SIZEOF_SIZE_T)
@@ -642,7 +441,7 @@ set(WITH_NEXT_FRAMEWORK 0)
 if(APPLE)
   set(WITH_DYLD 1)
   set(WITH_NEXT_FRAMEWORK 0) # TODO: See --enable-framework option.
-endif()
+endif(APPLE)
 
 if(HAVE_LONG_LONG)
   if(SIZEOF_OFF_T GREATER SIZEOF_LONG
@@ -650,7 +449,7 @@ if(HAVE_LONG_LONG)
       set(HAVE_LARGEFILE_SUPPORT 1)
   endif()
   
-endif()
+endif(HAVE_LONG_LONG)
 
 
 set(CFG_HEADERS )
@@ -666,7 +465,6 @@ add_cond(CFG_HEADERS HAVE_SYS_STAT_H sys/stat.h)
 add_cond(CFG_HEADERS HAVE_SYS_LOCK_H sys/lock.h)
 add_cond(CFG_HEADERS HAVE_SYS_TIMEB_H sys/timeb.h)
 add_cond(CFG_HEADERS HAVE_SYS_TIMES_H sys/times.h)
-add_cond(CFG_HEADERS HAVE_SYS_UIO_H sys/uio.h)
 add_cond(CFG_HEADERS HAVE_SYS_UTSNAME_H sys/utsname.h)
 add_cond(CFG_HEADERS HAVE_SYS_MMAN_H sys/mman.h)
 add_cond(CFG_HEADERS HAVE_SYS_SOCKET_H sys/socket.h)
@@ -674,33 +472,21 @@ add_cond(CFG_HEADERS HAVE_SYS_WAIT_H sys/wait.h)
 add_cond(CFG_HEADERS HAVE_PWD_H pwd.h)
 add_cond(CFG_HEADERS HAVE_GRP_H grp.h)
 add_cond(CFG_HEADERS HAVE_SHADOW_H shadow.h)
-add_cond(CFG_HEADERS HAVE_INTTYPES_H inttypes.h)
 add_cond(CFG_HEADERS HAVE_LOCALE_H locale.h)
 add_cond(CFG_HEADERS HAVE_LIBINTL_H libintl.h)
 add_cond(CFG_HEADERS HAVE_FCNTL_H fcntl.h)
 add_cond(CFG_HEADERS HAVE_PTY_H pty.h)
 add_cond(CFG_HEADERS HAVE_SIGNAL_H signal.h)
-add_cond(CFG_HEADERS HAVE_STDINT_H stdint.h)
 add_cond(CFG_HEADERS HAVE_STDLIB_H stdlib.h)
 add_cond(CFG_HEADERS HAVE_STRING_H string.h)
 add_cond(CFG_HEADERS HAVE_UTIL_H util.h)
 add_cond(CFG_HEADERS HAVE_UNISTD_H unistd.h)
 add_cond(CFG_HEADERS HAVE_UTIME_H utime.h)
 add_cond(CFG_HEADERS HAVE_WCHAR_H wchar.h)
-if(IS_PY3)
-add_cond(CFG_HEADERS HAVE_DIRENT_H dirent.h)
-add_cond(CFG_HEADERS HAVE_ENDIAN_H endian.h)
-add_cond(CFG_HEADERS HAVE_NET_IF_H net/if.h)
-add_cond(CFG_HEADERS HAVE_SCHED_H sched.h)
-add_cond(CFG_HEADERS HAVE_SYS_ENDIAN_H sys/endian.h)
-add_cond(CFG_HEADERS HAVE_SYS_RESOURCE_H sys/resource.h)
-add_cond(CFG_HEADERS HAVE_SYS_SENDFILE_H sys/sendfile.h)
-add_cond(CFG_HEADERS HAVE_SYS_TIME_H sys/time.h)
-endif()
 
 if(HAVE_PTY_H)
   set(CFG_HEADERS ${CFG_HEADERS} pty.h utmp.h)
-endif()
+endif(HAVE_PTY_H)
 
 set(CFG_HEADERS ${CFG_HEADERS} time.h stdio.h math.h)
 
@@ -716,18 +502,12 @@ check_symbol_exists(ctermid      "${CFG_HEADERS}" HAVE_CTERMID)
 check_symbol_exists(ctermid_r    "${CFG_HEADERS}" HAVE_CTERMID_R)
 check_symbol_exists(dup2         "${CFG_HEADERS}" HAVE_DUP2)
 check_symbol_exists(epoll_create "${CFG_HEADERS}" HAVE_EPOLL)
-if(IS_PY3)
-check_symbol_exists(epoll_create1 "${CFG_HEADERS}" HAVE_EPOLL_CREATE1)
-endif()
 check_symbol_exists(execv        "${CFG_HEADERS}" HAVE_EXECV)
 check_symbol_exists(fchdir       "${CFG_HEADERS}" HAVE_FCHDIR)
 check_symbol_exists(fchmod       "${CFG_HEADERS}" HAVE_FCHMOD)
 check_symbol_exists(fchown       "${CFG_HEADERS}" HAVE_FCHOWN)
 check_symbol_exists(fdatasync    "${CFG_HEADERS}" HAVE_FDATASYNC)
 check_symbol_exists(flock        "${CFG_HEADERS}" HAVE_FLOCK)
-if(NOT HAVE_FLOCK)
-  check_library_exists(bsd flock "" FLOCK_NEEDS_LIBBSD)
-endif()
 check_symbol_exists(fork         "${CFG_HEADERS}" HAVE_FORK)
 check_symbol_exists(forkpty      "${CFG_HEADERS}" HAVE_FORKPTY)
 check_symbol_exists(fpathconf    "${CFG_HEADERS}" HAVE_FPATHCONF)
@@ -737,7 +517,7 @@ add_cond(CFG_HEADERS HAVE_FPU_CONTROL_H fpu_control.h)
 check_symbol_exists(__fpu_control  "${CFG_HEADERS}" HAVE___FPU_CONTROL)
 if(NOT HAVE___FPU_CONTROL)
   check_library_exists(ieee __fpu_control "" HAVE_LIBIEEE)
-endif()
+endif(NOT HAVE___FPU_CONTROL)
 set(CFG_HEADERS ${CFG_HEADERS_SAVE})
 cmake_pop_check_state()
 check_symbol_exists(fseek64      "${CFG_HEADERS}" HAVE_FSEEK64)
@@ -748,12 +528,9 @@ check_symbol_exists(ftell64      "${CFG_HEADERS}" HAVE_FTELL64)
 check_symbol_exists(ftello       "${CFG_HEADERS}" HAVE_FTELLO)
 check_symbol_exists(ftime        "${CFG_HEADERS}" HAVE_FTIME)
 check_symbol_exists(ftruncate    "${CFG_HEADERS}" HAVE_FTRUNCATE)
-if(IS_PY2)
 check_symbol_exists(getcwd       "${CFG_HEADERS}" HAVE_GETCWD)
-endif()
 check_symbol_exists(getc_unlocked   "${CFG_HEADERS}" HAVE_GETC_UNLOCKED)
 check_symbol_exists(getgroups       "${CFG_HEADERS}" HAVE_GETGROUPS)
-check_symbol_exists(getitimer    "${CFG_HEADERS}" HAVE_GETITIMER)
 check_symbol_exists(getloadavg   "${CFG_HEADERS}" HAVE_GETLOADAVG)
 check_symbol_exists(getlogin     "${CFG_HEADERS}" HAVE_GETLOGIN)
 check_symbol_exists(getpagesize  "${CFG_HEADERS}" HAVE_GETPAGESIZE)
@@ -770,12 +547,11 @@ check_symbol_exists(getspnam     "${CFG_HEADERS}" HAVE_GETSPNAM)
 check_symbol_exists(gettimeofday "${CFG_HEADERS}" HAVE_GETTIMEOFDAY)
 check_symbol_exists(getwd        "${CFG_HEADERS}" HAVE_GETWD)
 check_symbol_exists(hypot        "${CFG_HEADERS}" HAVE_HYPOT)
-check_symbol_exists(initgroups   "${CFG_HEADERS}" HAVE_INITGROUPS)
 check_symbol_exists(kill         "${CFG_HEADERS}" HAVE_KILL)
 check_symbol_exists(killpg       "${CFG_HEADERS}" HAVE_KILLPG)
 check_symbol_exists(kqueue       "${CFG_HEADERS}" HAVE_KQUEUE)
 check_symbol_exists(lchflags     "${CFG_HEADERS}" HAVE_LCHFLAGS)
-python_check_function(lchmod HAVE_LCHMOD)
+check_symbol_exists(lchmod       "${CFG_HEADERS}" HAVE_LCHMOD)
 check_symbol_exists(lchown       "${CFG_HEADERS}" HAVE_LCHOWN)
 check_symbol_exists(link         "${CFG_HEADERS}" HAVE_LINK)
 check_symbol_exists(lstat        "${CFG_HEADERS}" HAVE_LSTAT)
@@ -800,14 +576,11 @@ check_symbol_exists(setegid      "${CFG_HEADERS}" HAVE_SETEGID)
 check_symbol_exists(seteuid      "${CFG_HEADERS}" HAVE_SETEUID)
 check_symbol_exists(setgid       "${CFG_HEADERS}" HAVE_SETGID)
 check_symbol_exists(setgroups    "${CFG_HEADERS}" HAVE_SETGROUPS)
-check_symbol_exists(setitimer    "${CFG_HEADERS}" HAVE_SETITIMER)
 check_symbol_exists(setlocale    "${CFG_HEADERS}" HAVE_SETLOCALE)
 check_symbol_exists(setpgid      "${CFG_HEADERS}" HAVE_SETPGID)
 check_symbol_exists(setpgrp      "${CFG_HEADERS}" HAVE_SETPGRP)
 check_symbol_exists(setregid     "${CFG_HEADERS}" HAVE_SETREGID)
 check_symbol_exists(setreuid     "${CFG_HEADERS}" HAVE_SETREUID)
-check_symbol_exists(setresgid    "${CFG_HEADERS}" HAVE_SETRESGID)
-check_symbol_exists(setresuid    "${CFG_HEADERS}" HAVE_SETRESUID)
 check_symbol_exists(setsid       "${CFG_HEADERS}" HAVE_SETSID)
 check_symbol_exists(setuid       "${CFG_HEADERS}" HAVE_SETUID)
 check_symbol_exists(setvbuf      "${CFG_HEADERS}" HAVE_SETVBUF)
@@ -839,74 +612,8 @@ check_symbol_exists(waitpid      "${CFG_HEADERS}" HAVE_WAITPID)
 check_symbol_exists(wcscoll      "${CFG_HEADERS}" HAVE_WCSCOLL)
 check_symbol_exists(_getpty      "${CFG_HEADERS}" HAVE__GETPTY)
 
-if(IS_PY3)
-check_symbol_exists(accept4      "${CFG_HEADERS}" HAVE_ACCEPT4)
-check_symbol_exists(dup3         "${CFG_HEADERS}" HAVE_DUP3)
-check_symbol_exists(faccessat    "${CFG_HEADERS}" HAVE_FACCESSAT)
-check_symbol_exists(fchmodat     "${CFG_HEADERS}" HAVE_FCHMODAT)
-check_symbol_exists(fchownat     "${CFG_HEADERS}" HAVE_FCHOWNAT)
-check_symbol_exists(fexecve      "${CFG_HEADERS}" HAVE_FEXECVE)
-check_symbol_exists(fdopendir    "${CFG_HEADERS}" HAVE_FDOPENDIR)
-check_symbol_exists(fstatat      "${CFG_HEADERS}" HAVE_FSTATAT)
-check_symbol_exists(futimens     "${CFG_HEADERS}" HAVE_FUTIMENS)
-check_symbol_exists(futimes      "${CFG_HEADERS}" HAVE_FUTIMES)
-check_symbol_exists(futimesat    "${CFG_HEADERS}" HAVE_FUTIMESAT)
-check_symbol_exists(getentropy   "${CFG_HEADERS}" HAVE_GETENTROPY)
-check_symbol_exists(getpriority  "${CFG_HEADERS}" HAVE_GETPRIORITY)
-check_symbol_exists(getgrouplist "${CFG_HEADERS}" HAVE_GETGROUPLIST)
-check_symbol_exists(htole64      "${CFG_HEADERS}" HAVE_HTOLE64)
-check_symbol_exists(if_nameindex "${CFG_HEADERS}" HAVE_IF_NAMEINDEX)
-check_symbol_exists(linkat       "${CFG_HEADERS}" HAVE_LINKAT)
-check_symbol_exists(lockf        "${CFG_HEADERS}" HAVE_LOCKF)
-check_symbol_exists(lutimes      "${CFG_HEADERS}" HAVE_LUTIMES)
-check_symbol_exists(mbrtowc      "${CFG_HEADERS}" HAVE_MBRTOWC)
-check_symbol_exists(memrchr      "${CFG_HEADERS}" HAVE_MEMRCHR)
-check_symbol_exists(mkdirat      "${CFG_HEADERS}" HAVE_MKDIRAT)
-check_symbol_exists(mkfifoat     "${CFG_HEADERS}" HAVE_MKFIFOAT)
-check_symbol_exists(mknodat      "${CFG_HEADERS}" HAVE_MKNODAT)
-check_symbol_exists(openat       "${CFG_HEADERS}" HAVE_OPENAT)
-check_symbol_exists(pipe2        "${CFG_HEADERS}" HAVE_PIPE2)
-check_symbol_exists(posix_fadvise          "${CFG_HEADERS}" HAVE_POSIX_FADVISE)
-check_symbol_exists(posix_fallocate        "${CFG_HEADERS}" HAVE_POSIX_FALLOCATE)
-check_symbol_exists(pread                  "${CFG_HEADERS}" HAVE_PREAD)
-check_symbol_exists(prlimit                "${CFG_HEADERS}" HAVE_PRLIMIT)
-
-cmake_push_check_state()
-list(APPEND CMAKE_REQUIRED_LIBRARIES pthread)
-check_symbol_exists(pthread_kill           "${CFG_HEADERS}" HAVE_PTHREAD_KILL)
-cmake_pop_check_state()
-
-check_symbol_exists(pwrite                 "${CFG_HEADERS}" HAVE_PWRITE)
-check_symbol_exists(readlinkat             "${CFG_HEADERS}" HAVE_READLINKAT)
-check_symbol_exists(readv                  "${CFG_HEADERS}" HAVE_READV)
-check_symbol_exists(renameat               "${CFG_HEADERS}" HAVE_RENAMEAT)
-check_symbol_exists(sched_rr_get_interval  "${CFG_HEADERS}" HAVE_SCHED_RR_GET_INTERVAL)
-check_symbol_exists(sched_setaffinity      "${CFG_HEADERS}" HAVE_SCHED_SETAFFINITY)
-check_symbol_exists(sched_setparam         "${CFG_HEADERS}" HAVE_SCHED_SETPARAM)
-check_symbol_exists(sched_setscheduler     "${CFG_HEADERS}" HAVE_SCHED_SETSCHEDULER)
-check_symbol_exists(sendfile               "${CFG_HEADERS}" HAVE_SENDFILE)
-check_symbol_exists(sethostname            "${CFG_HEADERS}" HAVE_SETHOSTNAME)
-check_symbol_exists(setpriority            "${CFG_HEADERS}" HAVE_SETPRIORITY)
-check_symbol_exists(sched_get_priority_max "${CFG_HEADERS}" HAVE_SCHED_GET_PRIORITY_MAX)
-check_symbol_exists(sigaltstack            "${CFG_HEADERS}" HAVE_SIGALTSTACK)
-check_symbol_exists(sigpending             "${CFG_HEADERS}" HAVE_SIGPENDING)
-check_symbol_exists(sigtimedwait           "${CFG_HEADERS}" HAVE_SIGTIMEDWAIT)
-check_symbol_exists(sigwait                "${CFG_HEADERS}" HAVE_SIGWAIT)
-check_symbol_exists(sigwaitinfo            "${CFG_HEADERS}" HAVE_SIGWAITINFO)
-check_symbol_exists(strlcpy                "${CFG_HEADERS}" HAVE_STRLCPY)
-check_symbol_exists(symlinkat              "${CFG_HEADERS}" HAVE_SYMLINKAT)
-check_symbol_exists(sync                   "${CFG_HEADERS}" HAVE_SYNC)
-check_symbol_exists(unlinkat               "${CFG_HEADERS}" HAVE_UNLINKAT)
-check_symbol_exists(utimensat              "${CFG_HEADERS}" HAVE_UTIMENSAT)
-check_symbol_exists(waitid                 "${CFG_HEADERS}" HAVE_WAITID)
-check_symbol_exists(wcsftime               "${CFG_HEADERS}" HAVE_WCSFTIME)
-check_symbol_exists(wcsxfrm                "${CFG_HEADERS}" HAVE_WCSXFRM)
-check_symbol_exists(wmemcmp                "${CFG_HEADERS}" HAVE_WMEMCMP)
-check_symbol_exists(writev                 "${CFG_HEADERS}" HAVE_WRITEV)
-endif()
-
 check_struct_has_member("struct stat" st_mtim.tv_nsec "${CFG_HEADERS}" HAVE_STAT_TV_NSEC)
-check_struct_has_member("struct stat" st_mtimespec.tv_nsec "${CFG_HEADERS}"    HAVE_STAT_TV_NSEC2)
+check_struct_has_member("struct stat" st_mtimensec "${CFG_HEADERS}"    HAVE_STAT_TV_NSEC2)
 check_struct_has_member("struct stat" st_birthtime "${CFG_HEADERS}"    HAVE_STRUCT_STAT_ST_BIRTHTIME)
 check_struct_has_member("struct stat" st_blksize "${CFG_HEADERS}"    HAVE_STRUCT_STAT_ST_BLKSIZE)
 check_struct_has_member("struct stat" st_blocks  "${CFG_HEADERS}"    HAVE_STRUCT_STAT_ST_BLOCKS)
@@ -915,28 +622,6 @@ check_struct_has_member("struct stat" st_flags   "${CFG_HEADERS}"    HAVE_STRUCT
 check_struct_has_member("struct stat" st_gen     "${CFG_HEADERS}"    HAVE_STRUCT_STAT_ST_GEN)
 check_struct_has_member("struct stat" st_rdev    "${CFG_HEADERS}"    HAVE_STRUCT_STAT_ST_RDEV)
 
-#######################################################################
-#
-# Check for gcc x64 inline assembler
-#
-#######################################################################
-
-if(IS_PY3)
-
-# Check for x64 gcc inline assembler
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_gcc_asm_for_x64.c)
-file(WRITE ${check_src} "int main () {
-  __asm__ __volatile__ (\"movq %rcx, %rax\");
-}
-")
-python_platform_test(
-  HAVE_GCC_ASM_FOR_X64
-  "Checking for x64 gcc inline assembler"
-  ${check_src}
-  DIRECT
-  )
-
-endif()
 
 #######################################################################
 #
@@ -945,7 +630,7 @@ endif()
 #######################################################################
 
 # Check whether C doubles are little-endian IEEE 754 binary64
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_little_endian_double.c)
+set(check_src ${PROJECT_BINARY_DIR}/ac_cv_little_endian_double.c)
 file(WRITE ${check_src} "#include <string.h>
 int main() {
     double x = 9006104071832581.0;
@@ -963,7 +648,7 @@ python_platform_test_run(
   )
 
 # Check whether C doubles are big-endian IEEE 754 binary64
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_big_endian_double.c)
+set(check_src ${PROJECT_BINARY_DIR}/ac_cv_big_endian_double.c)
 file(WRITE ${check_src} "#include <string.h>
 int main() {
     double x = 9006104071832581.0;
@@ -981,7 +666,7 @@ python_platform_test_run(
   )
 
 # Check whether C doubles are ARM mixed-endian IEEE 754 binary64
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_mixed_endian_double.c)
+set(check_src ${PROJECT_BINARY_DIR}/ac_cv_mixed_endian_double.c)
 file(WRITE ${check_src} "#include <string.h>
 int main() {
     double x = 9006104071832581.0;
@@ -998,18 +683,8 @@ python_platform_test_run(
   DIRECT
   )
 
-# The short float repr introduced in Python 3.1 requires the
-# correctly-rounded string <-> double conversion functions from
-# Python/dtoa.c, which in turn require that the FPU uses 53-bit
-# rounding; this is a problem on x86, where the x87 FPU has a default
-# rounding precision of 64 bits.  For gcc/x86, we can fix this by
-# using inline assembler to get and set the x87 FPU control word.
-
-# This inline assembler syntax may also work for suncc and icc,
-# so we try it on all platforms.
-
 # Check whether we can use gcc inline assembler to get and set x87 control word
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_gcc_asm_for_x87.c)
+set(check_src ${PROJECT_BINARY_DIR}/have_gcc_asm_for_x87.c)
 file(WRITE ${check_src} "int main() {
   unsigned short cw;
   __asm__ __volatile__ (\"fnstcw %0\" : \"=m\" (cw));
@@ -1044,7 +719,7 @@ endif()
 
 
 # Check for x87-style double rounding
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_x87_double_rounding.c)
+set(check_src ${PROJECT_BINARY_DIR}/ac_cv_x87_double_rounding.c)
 file(WRITE ${check_src} "#include <stdlib.h>
 #include <math.h>
 int main() {
@@ -1080,7 +755,7 @@ python_platform_test_run(
 cmake_push_check_state()
 
 # Check whether tanh preserves the sign of zero
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_tanh_preserves_zero_sign.c)
+set(check_src ${PROJECT_BINARY_DIR}/ac_cv_tanh_preserves_zero_sign.c)
 file(WRITE ${check_src} "#include <math.h>
 #include <stdlib.h>
 int main() {
@@ -1099,34 +774,9 @@ python_platform_test_run(
   DIRECT
   )
 
-if(IS_PY3)
-# Check whether log1p drops the sign of negative zero
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_log1p_drops_zero_sign.c)
-file(WRITE ${check_src} "#include <math.h>
-#include <stdlib.h>
-int main() {
-  /* Fail if the signs of log1p(-0.) and -0. can be distinguished. */
-  if (atan2(log1p(-0.), -1.) == atan2(-0., -1.))
-      return 0;
-  else
-      return 1;
-}
-")
-python_platform_test_run(
-  LOG1P_DROPS_ZERO_SIGN
-  "Checking whether log1p drops the sign of negative zero"
-  ${check_src}
-  INVERT
-  )
-endif()
-
-set(_funcs acosh asinh atanh copysign erf erfc expm1 finite gamma
-  hypot lgamma log1p round tgamma
-  )
-if(IS_PY3)
-  list(APPEND _funcs log2)
-endif()
-foreach(func ${_funcs})
+foreach(func
+  acosh asinh atanh copysign erf erfc expm1 finite gamma
+  hypot lgamma log1p round tgamma)
   string(TOUPPER ${func} _func_upper)
   check_function_exists(${func} HAVE_${_func_upper})
 endforeach()
@@ -1149,11 +799,9 @@ set(HAVE_TM_ZONE ${HAVE_STRUCT_TM_TM_ZONE})
 
 if(NOT HAVE_STRUCT_TM_TM_ZONE)
   check_variable_exists(tzname HAVE_TZNAME)
-  check_symbol_exists(tzname "time.h" HAVE_DECL_TZNAME)
-else()
+else(NOT HAVE_STRUCT_TM_TM_ZONE)
   set(HAVE_TZNAME 0)
-  set(HAVE_DECL_TZNAME 0)
-endif()
+endif(NOT HAVE_STRUCT_TM_TM_ZONE)
 
 check_type_exists("struct tm" "time.h" TM_IN_TIME)
 if(TM_IN_TIME)
@@ -1168,9 +816,9 @@ check_c_source_compiles("#include <sys/time.h>\n int main() {gettimeofday((struc
 
 if(GETTIMEOFDAY_WITH_TZ)
   set(GETTIMEOFDAY_NO_TZ 0)
-else()
+else(GETTIMEOFDAY_WITH_TZ)
   set(GETTIMEOFDAY_NO_TZ 1)
-endif()
+endif(GETTIMEOFDAY_WITH_TZ)
 
 if(IS_PY3)
 
@@ -1298,54 +946,42 @@ python_platform_test(
   )
 
 #ucs2
+set(PY_UNICODE_TYPE "unsigned short")
 set(HAVE_USABLE_WCHAR_T 0)
+set(Py_UNICODE_SIZE 2)
 
-if(IS_PY2)
-
-if(Py_USING_UNICODE AND NOT DEFINED Py_UNICODE_SIZE)
-  if(HAVE_UCS4_TCL)
-    message(STATUS "Defaulting Py_UNICODE_SIZE to 4 because HAVE_UCS4_TCL is set")
-    set(Py_UNICODE_SIZE 4)
-  else()
-    # Py_UNICODE defaults to two-byte mode
-    set(Py_UNICODE_SIZE 2)
-  endif()
-endif()
-
-if("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_WCHAR_T}")
+if   ("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_WCHAR_T}")
   set(PY_UNICODE_TYPE wchar_t)
   set(HAVE_USABLE_WCHAR_T 1)
-  message(STATUS "Using wchar_t for unicode [Py_UNICODE_SIZE: ${Py_UNICODE_SIZE}]")
-else()
+  message(STATUS "Using wchar_t for unicode")
+else ("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_WCHAR_T}")
 
-  if("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_SHORT}")
+  if   ("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_SHORT}")
     set(PY_UNICODE_TYPE "unsigned short")
     set(HAVE_USABLE_WCHAR_T 0)
-    message(STATUS "Using unsigned short for unicode [Py_UNICODE_SIZE: ${Py_UNICODE_SIZE}]")
-  else()
+    message(STATUS "Using unsigned short for unicode")
+  else ("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_SHORT}")
 
-    if("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_LONG}")
+    if   ("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_LONG}")
       set(PY_UNICODE_TYPE "unsigned long")
       set(HAVE_USABLE_WCHAR_T 0)
-      message(STATUS "Using unsigned long for unicode [Py_UNICODE_SIZE: ${Py_UNICODE_SIZE}]")
-    else()
+      message(STATUS "Using unsigned long for unicode")
+    else ("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_LONG}")
 
       if(Py_USING_UNICODE)
-        message(SEND_ERROR "No usable unicode type found for [Py_UNICODE_SIZE: ${Py_UNICODE_SIZE}]
-Two paths forward:
-(1) set Py_UNICODE_SIZE to either ${SIZEOF_WCHAR_T}, ${SIZEOF_SHORT} or ${SIZEOF_LONG}
-(2) disable Py_USING_UNICODE option")
-      else()
-        message(STATUS "No usable unicode type found [Py_USING_UNICODE: ${Py_USING_UNICODE}]")
-      endif()
+        message(SEND_ERROR "No usable unicode type found, disable Py_USING_UNICODE to be able to build Python")
+      else(Py_USING_UNICODE)
+        message(STATUS "No usable unicode type found")
+      endif(Py_USING_UNICODE)
 
-    endif()
+    endif("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_LONG}")
 
-  endif()
+  endif("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_SHORT}")
 
-endif()
+endif("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_WCHAR_T}")
 
-endif()
+
+
 
 #######################################################################
 #
@@ -1358,88 +994,17 @@ add_cond(CFG_HEADERS HAVE_NETDB_H netdb.h)
 add_cond(CFG_HEADERS HAVE_NETINET_IN_H netinet/in.h)
 add_cond(CFG_HEADERS HAVE_ARPA_INET_H arpa/inet.h)
 
-check_symbol_exists(gethostbyname_r "${CFG_HEADERS}" HAVE_GETHOSTBYNAME_R)
-if(HAVE_GETHOSTBYNAME_R)
-
-  # Checking gethostbyname_r with 6 args
-  set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_gethostbyname_r_6_arg.c)
-  file(WRITE ${check_src} "int main() {
-    char *name;
-    struct hostent *he, *res;
-    char buffer[2048];
-    int buflen = 2048;
-    int h_errnop;
-
-    (void) gethostbyname_r(name, he, buffer, buflen, &res, &h_errnop);
-    return 0;
-}
-")
-  python_platform_test(
-    HAVE_GETHOSTBYNAME_R_6_ARG
-    "Checking gethostbyname_r with 6 args"
-    ${check_src}
-    DIRECT
-    )
-  if(HAVE_GETHOSTBYNAME_R_6_ARG)
-    set(HAVE_GETHOSTBYNAME_R 1)
-  else()
-    # Checking gethostbyname_r with 5 args
-    set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_gethostbyname_r_5_arg.c)
-    file(WRITE ${check_src} "int main() {
-    char *name;
-    struct hostent *he;
-    char buffer[2048];
-    int buflen = 2048;
-    int h_errnop;
-
-    (void) gethostbyname_r(name, he, buffer, buflen, &h_errnop)
-    return 0;
-}
-")
-    python_platform_test(
-      HAVE_GETHOSTBYNAME_R_5_ARG
-      "Checking gethostbyname_r with 5 args"
-      ${check_src}
-      DIRECT
-      )
-    if(HAVE_GETHOSTBYNAME_R_5_ARG)
-      set(HAVE_GETHOSTBYNAME_R 1)
-    else()
-      # Checking gethostbyname_r with 5 args
-      set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_gethostbyname_r_3_arg.c)
-      file(WRITE ${check_src} "int main() {
-    char *name;
-    struct hostent *he;
-    struct hostent_data data;
-
-    (void) gethostbyname_r(name, he, &data);
-    return 0;
-}
-")
-      python_platform_test(
-        HAVE_GETHOSTBYNAME_R_3_ARG
-        "Checking gethostbyname_r with 3 args"
-        ${check_src}
-        DIRECT
-        )
-      if(HAVE_GETHOSTBYNAME_R_3_ARG)
-        set(HAVE_GETHOSTBYNAME_R 1)
-      endif()
-    endif()
-  endif()
-else()
-  check_symbol_exists(gethostbyname   "${CFG_HEADERS}" HAVE_GETHOSTBYNAME)
-endif()
-
 check_symbol_exists(gai_strerror    "${CFG_HEADERS}" HAVE_GAI_STRERROR)
 check_symbol_exists(getaddrinfo     "${CFG_HEADERS}" HAVE_GETADDRINFO)
+check_symbol_exists(gethostbyname   "${CFG_HEADERS}" HAVE_GETHOSTBYNAME)
+#check_symbol_exists(gethostbyname_r "${CFG_HEADERS}" HAVE_GETHOSTBYNAME_R) # see end of file
 check_symbol_exists(getnameinfo     "${CFG_HEADERS}" HAVE_GETNAMEINFO)
 check_symbol_exists(getpeername     "${CFG_HEADERS}" HAVE_GETPEERNAME)
 check_symbol_exists(hstrerror       "${CFG_HEADERS}" HAVE_HSTRERROR)
 check_symbol_exists(inet_aton       "${CFG_HEADERS}" HAVE_INET_ATON)
 if(NOT HAVE_INET_ATON)
   check_library_exists(resolv inet_aton "" HAVE_LIBRESOLV)
-endif()
+endif(NOT HAVE_INET_ATON)
 check_symbol_exists(inet_pton       "${CFG_HEADERS}" HAVE_INET_PTON)
 
 check_type_exists("struct addrinfo" "${CFG_HEADERS}" HAVE_ADDRINFO)
@@ -1458,34 +1023,22 @@ cmake_pop_check_state()
 cmake_push_check_state()
 set(CFG_HEADERS_SAVE ${CFG_HEADERS})
 
-if(IS_PY2)
 set(ATHEOS_THREADS 0)
 set(BEOS_THREADS 0)
 set(C_THREADS 0)
 set(HURD_C_THREADS 0)
 set(MACH_C_THREADS 0)
 set(HAVE_PTH 0) # GNU PTH threads
-endif()
 
 set(HAVE_PTHREAD_DESTRUCTOR 0) # for Solaris 2.6
 add_cond(CFG_HEADERS  HAVE_PTHREAD_H  pthread.h)
 add_cond(CMAKE_REQUIRED_LIBRARIES  CMAKE_USE_PTHREADS_INIT  "${CMAKE_THREAD_LIBS_INIT}")
-if(APPLE)
-  set(HAVE_PTHREAD_INIT ${CMAKE_USE_PTHREADS_INIT}) # See commit message for explanation.
-else()
-  check_symbol_exists(pthread_init "${CFG_HEADERS}" HAVE_PTHREAD_INIT)
-endif()
-check_symbol_exists(pthread_sigmask "${CFG_HEADERS}" HAVE_PTHREAD_SIGMASK)
-check_symbol_exists(pthread_atfork "${CFG_HEADERS}" HAVE_PTHREAD_ATFORK)
 
-add_cond(CFG_HEADERS  HAVE_SEMAPHORE_H  semaphore.h)
-check_symbol_exists(sem_getvalue "${CFG_HEADERS}" HAVE_SEM_GETVALUE)
-check_symbol_exists(sem_open "${CFG_HEADERS}" HAVE_SEM_OPEN)
-check_symbol_exists(sem_timedwait "${CFG_HEADERS}" HAVE_SEM_TIMEDWAIT)
-check_symbol_exists(sem_unlink "${CFG_HEADERS}" HAVE_SEM_UNLINK)
+check_symbol_exists(pthread_init "${CFG_HEADERS}" HAVE_PTHREAD_INIT)
+check_symbol_exists(pthread_sigmask "${CFG_HEADERS}" HAVE_PTHREAD_SIGMASK)
 
 # For multiprocessing module, check that sem_open actually works.
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_posix_semaphores_enabled.c)
+set(check_src ${PROJECT_BINARY_DIR}/ac_cv_posix_semaphores_enabled.c)
 file(WRITE ${check_src} "#include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -1507,11 +1060,11 @@ python_platform_test_run(
   POSIX_SEMAPHORES_NOT_ENABLED
   "Checking whether POSIX semaphores are enabled"
   ${check_src}
-  INVERT
+  DIRECT
   )
 
 # Multiprocessing check for broken sem_getvalue
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_broken_sem_getvalue.c)
+set(check_src ${PROJECT_BINARY_DIR}/have_broken_sem_getvalue.c)
 file(WRITE ${check_src} "#include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -1546,7 +1099,7 @@ cmake_pop_check_state()
 if(CMAKE_SYSTEM MATCHES BlueGene)
   # Todo: Display message
   set(WITH_THREAD OFF CACHE STRING "System doesn't support multithreading" FORCE)
-endif()
+endif(CMAKE_SYSTEM MATCHES BlueGene)
 
 
 #######################################################################
@@ -1554,19 +1107,6 @@ endif()
 # readline tests
 #
 #######################################################################
-
-# MacOSX 10.4 has a broken readline. Don't try to build
-# the readline module unless the user has installed a fixed
-# readline package
-if(HAVE_READLINE_READLINE_H)
-  if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET
-     AND "${CMAKE_OSX_DEPLOYMENT_TARGET}" VERSION_LESS "10.5")
-    check_include_files(readline/rlconf.h HAVE_READLINE_RLCONF_H)
-    if(NOT HAVE_READLINE_RLCONF_H)
-      set(HAVE_READLINE_READLINE_H FALSE)
-    endif()
-  endif()
-endif()
 if(HAVE_READLINE_READLINE_H)
   cmake_push_check_state()
   set(CFG_HEADERS_SAVE ${CFG_HEADERS})
@@ -1583,7 +1123,7 @@ if(HAVE_READLINE_READLINE_H)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif()
+endif(HAVE_READLINE_READLINE_H)
 
 
 #######################################################################
@@ -1606,7 +1146,7 @@ if(HAVE_CURSES_H)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif()
+endif(HAVE_CURSES_H)
 
 
 #######################################################################
@@ -1624,14 +1164,14 @@ if(HAVE_DLFCN_H)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif()
+endif(HAVE_DLFCN_H)
 
 
 if(HAVE_DLOPEN) # OR .... )
   set(HAVE_DYNAMIC_LOADING 1)
-else()
+else(HAVE_DLOPEN)
   set(HAVE_DYNAMIC_LOADING 0)
-endif()
+endif(HAVE_DLOPEN)
 
 
 #######################################################################
@@ -1642,37 +1182,37 @@ endif()
 check_type_exists(gid_t sys/types.h HAVE_GID_T)
 if(NOT HAVE_GID_T)
   set(gid_t int)
-else()
+else(NOT HAVE_GID_T)
   set(gid_t 0)
-endif()
+endif(NOT HAVE_GID_T)
 
 check_type_exists(mode_t sys/types.h HAVE_MODE_T)
 if(NOT HAVE_MODE_T)
   set(mode_t int)
-else()
+else(NOT HAVE_MODE_T)
   set(mode_t 0)
-endif()
+endif(NOT HAVE_MODE_T)
 
 check_type_exists(off_t sys/types.h HAVE_OFF_T)
 if(NOT HAVE_OFF_T)
   set(off_t "long int")
-else()
+else(NOT HAVE_OFF_T)
   set(off_t 0)
-endif()
+endif(NOT HAVE_OFF_T)
 
 check_type_exists(pid_t sys/types.h HAVE_PID_T)
 if(NOT HAVE_PID_T)
   set(pid_t int)
-else()
+else(NOT HAVE_PID_T)
   set(pid_t 0)
-endif()
+endif(NOT HAVE_PID_T)
 
 check_type_exists(size_t sys/types.h HAVE_SIZE_T)
 if(NOT HAVE_SIZE_T)
   set(size_t "unsigned int")
-else()
+else(NOT HAVE_SIZE_T)
   set(size_t 0)
-endif()
+endif(NOT HAVE_SIZE_T)
 
 check_type_exists("uint64_t" "${CFG_HEADERS}" HAVE_UINT64_T)
 check_type_exists("int64_t" "${CFG_HEADERS}" HAVE_INT64_T)
@@ -1686,140 +1226,58 @@ endif()
 check_type_exists(socklen_t sys/socket.h HAVE_SOCKLEN_T)
 if(NOT HAVE_SOCKLEN_T)
   set(socklen int)
-else()
+else(NOT HAVE_SOCKLEN_T)
   set(socklen_t 0)
-endif()
+endif(NOT HAVE_SOCKLEN_T)
 
 check_type_exists(uid_t sys/types.h HAVE_UID_T)
 if(NOT HAVE_UID_T)
   set(uid_t int)
-else()
+else(NOT HAVE_UID_T)
   set(uid_t 0)
-endif()
+endif(NOT HAVE_UID_T)
 
 check_type_exists(clock_t time.h HAVE_CLOCK_T)
 if(NOT HAVE_CLOCK_T)
   set(clock_t long)
-else()
+else(NOT HAVE_CLOCK_T)
   set(clock_t 0)
-endif()
+endif(NOT HAVE_CLOCK_T)
 
 
 check_c_source_compiles("int main() {const int i;}" const_WORKS)
 if(NOT const_WORKS)
   set(const 1)
-else()
+else(NOT const_WORKS)
   set(const 0)
-endif()
+endif(NOT const_WORKS)
 
 check_c_source_compiles("int main() {signed int i;}" signed_WORKS)
 if(NOT signed_WORKS)
   set(signed 1)
-else()
+else(NOT signed_WORKS)
   set(signed 0)
-endif()
+endif(NOT signed_WORKS)
 
 check_c_source_compiles("int main() {volatile int i;}" volatile_WORKS)
 if(NOT volatile_WORKS)
   set(volatile 1)
-else()
+else(NOT volatile_WORKS)
   set(volatile 0)
-endif()
-
-
-# Check for prototypes
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_prototypes.c)
-file(WRITE ${check_src} "int foo(int x) { return 0; } int main() { return foo(10); }")
-python_platform_test(
-  HAVE_PROTOTYPES
-  "Checking for prototypes"
-  ${check_src}
-  DIRECT
-  )
+endif(NOT volatile_WORKS)
 
 if(HAVE_STDARG_PROTOTYPES)
    set(vaargsHeader "stdarg.h")
-else()
+else(HAVE_STDARG_PROTOTYPES)
    set(vaargsHeader "varargs.h")
-endif()
+endif(HAVE_STDARG_PROTOTYPES)
 check_c_source_compiles("#include <${vaargsHeader}>\n int main() {va_list list1, list2; list1 = list2;}" NOT_VA_LIST_IS_ARRAY)
 if(NOT_VA_LIST_IS_ARRAY)
   set(VA_LIST_IS_ARRAY 0)
-else()
+else(NOT_VA_LIST_IS_ARRAY)
   set(VA_LIST_IS_ARRAY 1)
-endif()
+endif(NOT_VA_LIST_IS_ARRAY)
 
-# Check whether char is unsigned
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_c_char_unsigned.c)
-file(WRITE ${check_src} "int main() { static int test_array [1 - 2 * !( ((char) -1) < 0 )];
-test_array [0] = 0; return test_array [0]; return 0; }")
-python_platform_test(
-  HAVE_C_CHAR_UNSIGNED
-  "Checking whether char is unsigned"
-  ${check_src}
-  INVERT
-  )
-if(HAVE_C_CHAR_UNSIGNED AND NOT CMAKE_C_COMPILER_ID MATCHES "^GNU$")
-  set(__CHAR_UNSIGNED__ 1)
-endif()
-
-if(IS_PY3)
-
-# Check if the dirent structure of a d_type field and DT_UNKNOWN is defined
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_dirent_d_type.c)
-file(WRITE ${check_src} "#include <dirent.h>
-int main() {
-  struct dirent entry;
-  return entry.d_type == DT_UNKNOWN;
-}
-")
-python_platform_test(
-  HAVE_DIRENT_D_TYPE
-  "Checking if the dirent structure of a d_type field"
-  ${check_src}
-  DIRECT
-  )
-
-# Check if the Linux getrandom() syscall is available
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_getrandom_syscall.c)
-file(WRITE ${check_src} "#include <sys/syscall.h>
-int main() {
-  char buffer[1];
-  const size_t buflen = sizeof(buffer);
-  const int flags = 0;
-  /* ignore the result, Python checks for ENOSYS at runtime */
-  (void)syscall(SYS_getrandom, buffer, buflen, flags);
-  return 0;
-}
-")
-python_platform_test(
-  HAVE_GETRANDOM_SYSCALL
-  "Checking for the Linux getrandom() syscall"
-  ${check_src}
-  DIRECT
-  )
-
-# check if the getrandom() function is available
-# the test was written for the Solaris function of <sys/random.h>
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_getrandom.c)
-file(WRITE ${check_src} "#include <sys/random.h>
-int main() {
-  char buffer[1];
-  const size_t buflen = sizeof(buffer);
-  const int flags = 0;
-  /* ignore the result, Python checks for ENOSYS at runtime */
-  (void)getrandom(buffer, buflen, flags);
-  return 0;
-}
-")
-python_platform_test(
-  HAVE_GETRANDOM
-  "Checking for the getrandom() function"
-  ${check_src}
-  DIRECT
-  )
-
-endif()
 
 #######################################################################
 #
@@ -1827,13 +1285,12 @@ endif()
 #
 #######################################################################
 
-if(IS_PY2)
 check_c_source_compiles("
         void f(char*,...)__attribute((format(PyArg_ParseTuple, 1, 2))) {}; 
         int main() {f(NULL);} "
         HAVE_ATTRIBUTE_FORMAT_PARSETUPLE)
-endif()
 
+set(CMAKE_REQUIRED_INCLUDES ${CFG_HEADERS})
 check_c_source_compiles("#include <unistd.h>\n int main() {getpgrp(0);}" GETPGRP_HAVE_ARG)
 
 if(IS_PY3)
@@ -1899,85 +1356,21 @@ check_c_source_runs(" #include <poll.h>
     else { exit(1); } }" 
     HAVE_BROKEN_POLL)
 
+if(HAVE_SYS_TIME_H)
+  check_include_files("sys/time.h;time.h" TIME_WITH_SYS_TIME)
+else(HAVE_SYS_TIME_H)
+  set(TIME_WITH_SYS_TIME 0)
+endif(HAVE_SYS_TIME_H)
 
-# Check tzset(3) exists and works like we expect it to
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_working_tzset.c)
-file(WRITE ${check_src} "#include <stdlib.h>
-#include <time.h>
-#include <string.h>
+if(HAVE_SYS_TIME_H AND HAVE_SYS_SELECT_H)
+  check_include_files("sys/select.h;sys/time.h" SYS_SELECT_WITH_SYS_TIME)
+else(HAVE_SYS_TIME_H AND HAVE_SYS_SELECT_H)
+  set(SYS_SELECT_WITH_SYS_TIME 0)
+endif(HAVE_SYS_TIME_H AND HAVE_SYS_SELECT_H)
 
-#if HAVE_TZNAME
-extern char *tzname[];
-#endif
-
-int main()
-{
-  /* Note that we need to ensure that not only does tzset(3)
-     do 'something' with localtime, but it works as documented
-     in the library reference and as expected by the test suite.
-     This includes making sure that tzname is set properly if
-     tm->tm_zone does not exist since it is the alternative way
-     of getting timezone info.
-
-     Red Hat 6.2 doesn't understand the southern hemisphere
-     after New Year's Day.
-  */
-
-  time_t groundhogday = 1044144000; /* GMT-based */
-  time_t midyear = groundhogday + (365 * 24 * 3600 / 2);
-
-  putenv(\"TZ=UTC+0\");
-  tzset();
-  if (localtime(&groundhogday)->tm_hour != 0)
-      exit(1);
-#if HAVE_TZNAME
-  /* For UTC, tzname[1] is sometimes \"\", sometimes \"   \" */
-  if (strcmp(tzname[0], \"UTC\") ||
-    (tzname[1][0] != 0 && tzname[1][0] != ' '))
-      exit(1);
-#endif
-
-  putenv(\"TZ=EST+5EDT,M4.1.0,M10.5.0\");
-  tzset();
-  if (localtime(&groundhogday)->tm_hour != 19)
-      exit(1);
-#if HAVE_TZNAME
-  if (strcmp(tzname[0], \"EST\") || strcmp(tzname[1], \"EDT\"))
-      exit(1);
-#endif
-
-  putenv(\"TZ=AEST-10AEDT-11,M10.5.0,M3.5.0\");
-  tzset();
-  if (localtime(&groundhogday)->tm_hour != 11)
-      exit(1);
-#if HAVE_TZNAME
-  if (strcmp(tzname[0], \"AEST\") || strcmp(tzname[1], \"AEDT\"))
-      exit(1);
-#endif
-
-#if HAVE_STRUCT_TM_TM_ZONE
-  if (strcmp(localtime(&groundhogday)->tm_zone, \"AEDT\"))
-      exit(1);
-  if (strcmp(localtime(&midyear)->tm_zone, \"AEST\"))
-      exit(1);
-#endif
-
-  exit(0);
-}
-")
-cmake_push_check_state()
-add_cond(CMAKE_REQUIRED_DEFINITIONS HAVE_TZNAME "-DHAVE_TZNAME")
-add_cond(CMAKE_REQUIRED_DEFINITIONS HAVE_STRUCT_TM_TM_ZONE "-DHAVE_STRUCT_TM_TM_ZONE")
-python_platform_test_run(
-  HAVE_WORKING_TZSET
-  "Checking for working tzset()"
-  ${check_src}
-  DIRECT
-  )
-cmake_pop_check_state()
 
 # Check for broken unsetenv
-set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_broken_unsetenv.c)
+set(check_src ${PROJECT_BINARY_DIR}/have_broken_unsetenv.c)
 file(WRITE ${check_src} "#include <stdlib.h>
 int main() {
   int res = unsetenv(\"DUMMY\");
@@ -2417,30 +1810,25 @@ endif()
 
 ##########################################################
 
-if(ZLIB_LIBRARY)
+find_package(ZLIB)
+if(ZLIB_FOUND)
   cmake_push_check_state()
   set(CFG_HEADERS_SAVE ${CFG_HEADERS})
 
   set(CFG_HEADERS ${CFG_HEADERS} zlib.h)
-  add_cond(CMAKE_REQUIRED_INCLUDES ZLIB_INCLUDE_DIR ${ZLIB_INCLUDE_DIR})
-  add_cond(CMAKE_REQUIRED_LIBRARIES ZLIB_LIBRARY ${ZLIB_LIBRARY})
+  add_cond(CMAKE_REQUIRED_LIBRARIES ZLIB_FOUND ${ZLIB_LIBRARIES})
   check_symbol_exists(inflateCopy      "${CFG_HEADERS}" HAVE_ZLIB_COPY)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif()
+endif(ZLIB_FOUND)
 
 ############################################
-
-if(IS_PY3)
-# Check for CAN_RAW_FD_FRAMES
-check_c_source_compiles("#include <linux/can/raw.h>\n int main () { int can_raw_fd_frames = CAN_RAW_FD_FRAMES; }" HAVE_LINUX_CAN_RAW_FD_FRAMES)
-endif()
 
 set(HAVE_OSX105_SDK 0)
 if(APPLE)
   # Check for OSX 10.5 SDK or later
-  set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_osx105_sdk.c)
+  set(check_src ${PROJECT_BINARY_DIR}/have_osx105_sdk.c)
   file(WRITE ${check_src} "#include <Carbon/Carbon.h>
 int main(int argc, char* argv[]){FSIORefNum fRef = 0; return 0;}")
   python_platform_test(
@@ -2449,53 +1837,63 @@ int main(int argc, char* argv[]){FSIORefNum fRef = 0; return 0;}")
     ${check_src}
     DIRECT
     )
-endif()
+endif(APPLE)
 
 # todo 
+set(ENABLE_IPV6 1)
+set(HAVE_UCS4_TCL 0)
+set(HAVE_PROTOTYPES 1)
 set(PTHREAD_SYSTEM_SCHED_SUPPORTED 1)
+set(HAVE_WORKING_TZSET 1)
+set(HAVE_DECL_TZNAME 0) # no test in python sources
 set(HAVE_DEVICE_MACROS ${HAVE_MAKEDEV})
 
-endif()
+set(HAVE_GETHOSTBYNAME_R 0)
+set(HAVE_GETHOSTBYNAME_R_3_ARG 0)
+set(HAVE_GETHOSTBYNAME_R_5_ARG 0)
+set(HAVE_GETHOSTBYNAME_R_6_ARG 0)
+
+endif(WIN32)
 
 # setup the python platform
 set(PY_PLATFORM generic)
 
 if(CMAKE_SYSTEM MATCHES Linux)
   set(PY_PLATFORM linux2)
-endif()
+endif(CMAKE_SYSTEM MATCHES Linux)
 
 if(CMAKE_SYSTEM MATCHES Darwin)
   set(PY_PLATFORM darwin)
-endif()
+endif(CMAKE_SYSTEM MATCHES Darwin)
 
 if(CMAKE_SYSTEM MATCHES FreeBSD)
   set(PY_PLATFORM freebsd5)  # which version to use ?
-endif()
+endif(CMAKE_SYSTEM MATCHES FreeBSD)
 
 if(CMAKE_SYSTEM MATCHES NetBSD)
   set(PY_PLATFORM netbsd1)
-endif()
+endif(CMAKE_SYSTEM MATCHES NetBSD)
 
 if(CMAKE_SYSTEM MATCHES AIX)
   set(PY_PLATFORM aix4)
-endif()
+endif(CMAKE_SYSTEM MATCHES AIX)
 
 if(CMAKE_SYSTEM MATCHES BeOS)
   set(PY_PLATFORM beos5)
-endif()
+endif(CMAKE_SYSTEM MATCHES BeOS)
 
 if(CMAKE_SYSTEM MATCHES IRIX)
   set(PY_PLATFORM irix6)
-endif()
+endif(CMAKE_SYSTEM MATCHES IRIX)
 
 if(CMAKE_SYSTEM MATCHES SunOS)
   set(PY_PLATFORM sunos5)
-endif()
+endif(CMAKE_SYSTEM MATCHES SunOS)
 
 if(CMAKE_SYSTEM MATCHES UnixWare)
   set(PY_PLATFORM unixware7)
-endif()
+endif(CMAKE_SYSTEM MATCHES UnixWare)
 
 if(CMAKE_SYSTEM MATCHES Windows)
   set(PY_PLATFORM win32)
-endif()
+endif(CMAKE_SYSTEM MATCHES Windows)

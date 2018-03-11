@@ -6,26 +6,54 @@ set(MODULE_SOURCES # Equivalent to MODULE_OBJS in Makefile.pre
     ${SRC_DIR}/Modules/gcmodule.c
     ${SRC_DIR}/Modules/main.c
 )
+
 if(UNIX)
-    list(APPEND MODULE_SOURCES
-        ${SRC_DIR}/Modules/getpath.c
+    foreach(filename class complex float int method string type unicode weakref)
+        set_property(SOURCE ${CMAKE_SOURCE_DIR}/Objects/${filename}object.c PROPERTY COMPILE_FLAGS -Wno-unused-value)
+    endforeach()
+endif(UNIX)
+
+if(WITH_THREAD)
+    list(APPEND LIBPYTHON_SOURCES
+        ${CMAKE_SOURCE_DIR}/Modules/threadmodule.c
+        ${CMAKE_SOURCE_DIR}/Python/thread.c
     )
-    set(PYTHONPATH "${EXTRA_PYTHONPATH}:lib-dynload:plat-${PY_PLATFORM}")
-    if(ENABLE_TKINTER)
-        set(PYTHONPATH "${PYTHONPATH}:lib-tk")
-    endif()
+endif()
+
+if(UNIX OR MINGW)
     set_property(
-        SOURCE ${SRC_DIR}/Modules/getpath.c
+        SOURCE ${CMAKE_SOURCE_DIR}/Python/getplatform.c
+        PROPERTY COMPILE_DEFINITIONS
+            PLATFORM="${PY_PLATFORM}"
+    )
+endif(UNIX OR MINGW)
+
+# Platform-specific source files
+if(UNIX)
+    list(APPEND LIBPYTHON_SOURCES
+        ${CMAKE_SOURCE_DIR}/Python/dynload_shlib.c
+        ${CMAKE_SOURCE_DIR}/Modules/getpath.c
+    )
+    set_property(
+        SOURCE ${CMAKE_SOURCE_DIR}/Modules/getpath.c
+        PROPERTY COMPILE_FLAGS
+            -Wno-deprecated-declarations
+        )
+    set_property(
+        SOURCE ${CMAKE_SOURCE_DIR}/Modules/getpath.c
         PROPERTY COMPILE_DEFINITIONS
             PREFIX="${CMAKE_INSTALL_PREFIX}"
             EXEC_PREFIX="${CMAKE_INSTALL_PREFIX}"
-            VERSION="${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}"
+            VERSION="${PY_MAJOR_VERSION}.${PY_MINOR_VERSION}"
             VPATH="."
-            PYTHONPATH="${PYTHONPATH}"
+            PYTHONPATH="${EXTRA_PYTHONPATH}:lib-dynload:plat-${PY_PLATFORM}"
       )
 elseif(WIN32)
-    list(APPEND MODULE_SOURCES
-        ${SRC_DIR}/PC/getpathp.c
+    list(APPEND LIBPYTHON_SOURCES
+        ${CMAKE_SOURCE_DIR}/PC/dl_nt.c
+        ${CMAKE_SOURCE_DIR}/PC/getpathp.c
+        ${CMAKE_SOURCE_DIR}/PC/import_nt.c
+        ${CMAKE_SOURCE_DIR}/Python/dynload_win.c
     )
     # HACK To workaround limitation in escaping logic of CMake, the pythonpath
     #      separator is conditionally set depending of the version of Visual Studio.
@@ -40,23 +68,14 @@ elseif(WIN32)
         set(PATHSEP ";")
     endif()
     string(REPLACE "/" "\\\\" PYTHONHOME_ESCAPED ${PYTHONHOME})
-    string(REPLACE "/" "\\\\" EXTENSION_INSTALL_DIR_ESCAPED ${EXTENSION_INSTALL_DIR})
+    string(REPLACE "/" "\\\\" DYNLOAD_ESCAPED ${DYNLOAD})
     set(PYTHONPATH "${EXTRA_PYTHONPATH}")
-    set(PYTHONPATH "${PYTHONPATH}${PATHSEP}.\\\\${PYTHONHOME_ESCAPED}")
-    set(PYTHONPATH "${PYTHONPATH}${PATHSEP}.\\\\${EXTENSION_INSTALL_DIR_ESCAPED}")
-    set(PYTHONPATH "${PYTHONPATH}${PATHSEP}.\\\\${EXTENSION_INSTALL_DIR_ESCAPED}\\\\${CMAKE_CFG_INTDIR}")
-    set(PYTHONPATH "${PYTHONPATH}${PATHSEP}.\\\\${PYTHONHOME_ESCAPED}\\\\plat-${PY_PLATFORM}")
-    if(ENABLE_TKINTER)
-        set(PYTHONPATH "${PYTHONPATH}${PATHSEP}.\\\\${PYTHONHOME_ESCAPED}\\\\lib-tk")
-    endif()
-
-    set(_wide_char_modifier)
-    if(IS_PY3)
-        set(_wide_char_modifier "L")
-    endif()
-
+    set(PYTHONPATH "${PYTHONPATH};.\\\\${PYTHONHOME_ESCAPED}")
+    set(PYTHONPATH "${PYTHONPATH};.\\\\${DYNLOAD_ESCAPED}")
+    set(PYTHONPATH "${PYTHONPATH};.\\\\${DYNLOAD_ESCAPED}\\\\${CMAKE_CFG_INTDIR}")
+    set(PYTHONPATH "${PYTHONPATH};.\\\\${PYTHONHOME_ESCAPED}\\\\plat-${PY_PLATFORM}")
     set_property(
-        SOURCE ${SRC_DIR}/PC/getpathp.c
+        SOURCE ${CMAKE_SOURCE_DIR}/PC/getpathp.c
         PROPERTY COMPILE_DEFINITIONS
             "LANDMARK=${_wide_char_modifier}\"${PYTHONHOME_ESCAPED}\\\\os.py\""
             "PYTHONPATH=${_wide_char_modifier}\"${PYTHONPATH}\""
@@ -147,18 +166,6 @@ if(UNIX)
     list(APPEND DYNLOAD_SOURCES
         ${SRC_DIR}/Python/dynload_shlib.c
     )
-    if(IS_PY3)
-    set_property(
-        SOURCE ${SRC_DIR}/Python/dynload_shlib.c
-        PROPERTY COMPILE_DEFINITIONS
-            SOABI="${SOABI}"
-        )
-    endif()
-elseif(WIN32)
-    list(APPEND DYNLOAD_SOURCES
-        ${SRC_DIR}/PC/dl_nt.c
-        ${SRC_DIR}/Python/dynload_win.c
-        )
     set_property(
         SOURCE ${SRC_DIR}/PC/dl_nt.c
         PROPERTY COMPILE_DEFINITIONS Py_ENABLE_SHARED
@@ -334,14 +341,14 @@ include_directories(${builtin_includedirs})
 
 # Create the parts of config.c for platform-specific and user-controlled
 # builtin modules.
-set(init_return_type_2 "void")
-set(init_prefix_2 "init")
+set(config_inits_file ${CMAKE_CURRENT_BINARY_DIR}/platform-config-inits.c)
+set(config_entries_file ${CMAKE_CURRENT_BINARY_DIR}/platform-config-entries.c)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${builtin_includedirs})
 
-set(init_return_type_3 "PyObject*")
-set(init_prefix_3 "PyInit_")
+file(WRITE "${config_inits_file}" "")
+file(WRITE "${config_entries_file}" "")
 
-set(config_inits "")
-set(config_entries "")
 foreach(ext ${builtin_extensions})
     set(config_inits "${config_inits}extern ${init_return_type_${PY_VERSION_MAJOR}} ${init_prefix_${PY_VERSION_MAJOR}}${ext}(void);\n")
     set(config_entries "${config_entries}    {\"${ext}\", ${init_prefix_${PY_VERSION_MAJOR}}${ext}},\n")
@@ -437,14 +444,22 @@ endif()
 # Build python libraries
 function(add_libpython name type)
     add_library(${name} ${type} ${LIBPYTHON_SOURCES})
-    target_link_libraries(${name} ${LIBPYTHON_TARGET_LIBRARIES})
+    target_link_libraries(${name}
+        ${builtin_link_libraries}
+        ${HAVE_LIBDL}
+        ${HAVE_LIBM}
+    )
+    if(WITH_THREAD)
+        target_link_libraries(${name} ${CMAKE_THREAD_LIBS_INIT})
+    endif(WITH_THREAD)
 
-    if(MSVC)
-        # Explicitly disable COMDAT folding. Note that this was not required
-        # in the original "pcbuild.sln" solution file because it was side effect
-        # of having "/Zi" flag set.
-        set_target_properties(${name} PROPERTIES LINK_FLAGS /OPT:NOICF)
-    endif()
+    if(UNIX)
+        target_link_libraries(${name} ${HAVE_LIBUTIL})
+    endif(UNIX)
+    
+    if(APPLE)
+        set_target_properties(${name} PROPERTIES LINK_FLAGS -Wl,-undefined,dynamic_lookup)
+    endif(APPLE)
 
     set_target_properties(${name} PROPERTIES
         OUTPUT_NAME ${LIBPYTHON}${ABIFLAGS}
@@ -452,14 +467,10 @@ function(add_libpython name type)
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR}
         INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/${LIBPYTHON_LIBDIR}
     )
-    if(HAVE_POSITION_INDEPENDENT_CODE)
-        set_target_properties(${name} PROPERTIES
-            POSITION_INDEPENDENT_CODE ON
-        )
-    endif()
 
-    # Export target
-    set_property(GLOBAL APPEND PROPERTY PYTHON_TARGETS ${name})
+    if(builtin_definitions)
+        set_target_properties(${name} PROPERTIES COMPILE_DEFINITIONS "${builtin_definitions}")
+    endif(builtin_definitions)
 
     install(TARGETS ${name} EXPORT PythonTargets
         ARCHIVE DESTINATION ${LIBPYTHON_ARCHIVEDIR}
@@ -473,15 +484,7 @@ if(BUILD_SHARED)
     set_target_properties(libpython-shared PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}
     )
-    if(APPLE)
-        # HACK For python <= 2.7.3, this fix link error related to undefined _environ symbol and
-        #      is equivalent to solution implemented in commit http://hg.python.org/cpython/rev/864b983
-        #      The property is set here because source file properties can't be in one directory
-        #      and used to build a target in an other directory.
-        set_property(
-            SOURCE ${SRC_DIR}/Modules/posixmodule.c
-            APPEND PROPERTY COMPILE_DEFINITIONS WITH_NEXT_FRAMEWORK)
-    endif()
+endif(BUILD_SHARED)
 
     set(targetname "libpython3-shared")
 
