@@ -524,6 +524,8 @@ endif(BUILD_SHARED)
 
     set(targetname "libpython3-shared")
 
+    set(targetname "libpython3-shared")
+
     if(IS_PY3 AND MSVC)
         # XXX Add BuildPython3_dDef
 
