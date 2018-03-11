@@ -52,11 +52,6 @@ function(CMAKE_EXPAND_IMPORTED_TARGETS _RESULT )
       endif()
    endif()
 
-   # XXX ignore warning 'get_target_property() called with non-existent target'
-   if(POLICY CMP0045)
-     cmake_policy(SET CMP0045 OLD)
-   endif()
-
    # handle imported library targets
 
    set(_CCSR_REQ_LIBS ${CEIT_LIBRARIES})
