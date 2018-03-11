@@ -188,14 +188,14 @@ elseif(WIN32)
                 _multiprocessing/win32_functions.c
         LIBRARIES ws2_32
     )
-endif(UNIX)
+endif()
 
 # Select needs winsock on Windows
 if(WIN32)
     add_python_extension(select SOURCES selectmodule.c LIBRARIES ws2_32)
-else(WIN32)
+else()
     add_python_extension(select SOURCES selectmodule.c)
-endif(WIN32)
+endif()
 
 # Socket is different on Windows
 if(WIN32)
@@ -459,7 +459,7 @@ else()
         DEFINITIONS ${_elementtree_definitions}
         INCLUDEDIRS ${SRC_DIR}/Modules/expat
     )
-endif(EXPAT_LIBRARIES AND EXPAT_INCLUDE_DIRS)
+endif()
 
 if(IS_PY2)
 

@@ -5,14 +5,14 @@ file(GLOB_RECURSE libfiles RELATIVE ${libdir} "${libdir}/*")
 
 if(UNIX)
     set(plat_subdir "plat-linux2")
-endif(UNIX)
+endif()
 
 foreach(file ${libfiles})
     # Don't install files for other platforms
     string(REGEX MATCH "^plat-" is_platform_file "${file}")
     if(plat_subdir)
         string(REGEX MATCH "^${plat_subdir}" is_matching_platform_file "${file}")
-    endif(plat_subdir)
+    endif()
 
     # Exclude tests if BUILD_TESTING is OFF
     string(REGEX MATCH "^test" is_test "${file}")

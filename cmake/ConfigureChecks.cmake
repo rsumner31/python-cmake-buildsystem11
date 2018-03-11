@@ -208,13 +208,13 @@ set(PLATFORM_TRIPLET "${CMAKE_SYSTEM_PROCESSOR}-${lc_system_name}")
 set(SOABI "cpython-${PY_VERSION_MAJOR}${PY_VERSION_MINOR}${ABIFLAGS}-${PLATFORM_TRIPLET}")
 message(STATUS "${_msg} - ${SOABI}")
 
-endif(IS_PY3)
+endif()
 
 macro(ADD_COND var cond item)
   if(${cond})
     set(${var} ${${var}} ${item})
-  endif(${cond})
-endmacro(ADD_COND)
+  endif()
+endmacro()
 
 set(CMAKE_REQUIRED_DEFINITIONS )
 
@@ -222,7 +222,7 @@ set(CMAKE_REQUIRED_DEFINITIONS )
 macro(set_required_def var value)
   set(${var} ${value})
   list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D${var}=${value}")
-endmacro(set_required_def)
+endmacro()
 
 # Emulate AC_HEADER_DIRENT
 check_include_files(dirent.h HAVE_DIRENT_H)
@@ -594,7 +594,7 @@ set(WITH_NEXT_FRAMEWORK 0)
 if(APPLE)
   set(WITH_DYLD 1)
   set(WITH_NEXT_FRAMEWORK 0) # TODO: See --enable-framework option.
-endif(APPLE)
+endif()
 
 if(HAVE_LONG_LONG)
   if(SIZEOF_OFF_T GREATER SIZEOF_LONG
@@ -602,7 +602,7 @@ if(HAVE_LONG_LONG)
       set(HAVE_LARGEFILE_SUPPORT 1)
   endif()
   
-endif(HAVE_LONG_LONG)
+endif()
 
 
 set(CFG_HEADERS )
@@ -639,7 +639,7 @@ add_cond(CFG_HEADERS HAVE_WCHAR_H wchar.h)
 
 if(HAVE_PTY_H)
   set(CFG_HEADERS ${CFG_HEADERS} pty.h utmp.h)
-endif(HAVE_PTY_H)
+endif()
 
 set(CFG_HEADERS ${CFG_HEADERS} time.h stdio.h math.h)
 
@@ -663,7 +663,7 @@ check_symbol_exists(fdatasync    "${CFG_HEADERS}" HAVE_FDATASYNC)
 check_symbol_exists(flock        "${CFG_HEADERS}" HAVE_FLOCK)
 if(NOT HAVE_FLOCK)
   check_library_exists(bsd flock "" FLOCK_NEEDS_LIBBSD)
-endif(NOT HAVE_FLOCK)
+endif()
 check_symbol_exists(fork         "${CFG_HEADERS}" HAVE_FORK)
 check_symbol_exists(forkpty      "${CFG_HEADERS}" HAVE_FORKPTY)
 check_symbol_exists(fpathconf    "${CFG_HEADERS}" HAVE_FPATHCONF)
@@ -673,7 +673,7 @@ add_cond(CFG_HEADERS HAVE_FPU_CONTROL_H fpu_control.h)
 check_symbol_exists(__fpu_control  "${CFG_HEADERS}" HAVE___FPU_CONTROL)
 if(NOT HAVE___FPU_CONTROL)
   check_library_exists(ieee __fpu_control "" HAVE_LIBIEEE)
-endif(NOT HAVE___FPU_CONTROL)
+endif()
 set(CFG_HEADERS ${CFG_HEADERS_SAVE})
 cmake_pop_check_state()
 check_symbol_exists(fseek64      "${CFG_HEADERS}" HAVE_FSEEK64)
@@ -961,10 +961,10 @@ set(HAVE_TM_ZONE ${HAVE_STRUCT_TM_TM_ZONE})
 if(NOT HAVE_STRUCT_TM_TM_ZONE)
   check_variable_exists(tzname HAVE_TZNAME)
   check_symbol_exists(tzname "time.h" HAVE_DECL_TZNAME)
-else(NOT HAVE_STRUCT_TM_TM_ZONE)
+else()
   set(HAVE_TZNAME 0)
   set(HAVE_DECL_TZNAME 0)
-endif(NOT HAVE_STRUCT_TM_TM_ZONE)
+endif()
 
 check_type_exists("struct tm" "time.h" TM_IN_TIME)
 if(TM_IN_TIME)
@@ -979,9 +979,9 @@ check_c_source_compiles("#include <sys/time.h>\n int main() {gettimeofday((struc
 
 if(GETTIMEOFDAY_WITH_TZ)
   set(GETTIMEOFDAY_NO_TZ 0)
-else(GETTIMEOFDAY_WITH_TZ)
+else()
   set(GETTIMEOFDAY_NO_TZ 1)
-endif(GETTIMEOFDAY_WITH_TZ)
+endif()
 
 if(IS_PY3)
 
@@ -1117,31 +1117,31 @@ if("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_WCHAR_T}")
   set(PY_UNICODE_TYPE wchar_t)
   set(HAVE_USABLE_WCHAR_T 1)
   message(STATUS "Using wchar_t for unicode")
-else("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_WCHAR_T}")
+else()
 
   if("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_SHORT}")
     set(PY_UNICODE_TYPE "unsigned short")
     set(HAVE_USABLE_WCHAR_T 0)
     message(STATUS "Using unsigned short for unicode")
-  else("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_SHORT}")
+  else()
 
     if("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_LONG}")
       set(PY_UNICODE_TYPE "unsigned long")
       set(HAVE_USABLE_WCHAR_T 0)
       message(STATUS "Using unsigned long for unicode")
-    else("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_LONG}")
+    else()
 
       if(Py_USING_UNICODE)
         message(SEND_ERROR "No usable unicode type found, disable Py_USING_UNICODE to be able to build Python")
-      else(Py_USING_UNICODE)
+      else()
         message(STATUS "No usable unicode type found")
-      endif(Py_USING_UNICODE)
+      endif()
 
-    endif("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_LONG}")
+    endif()
 
-  endif("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_SHORT}")
+  endif()
 
-endif("${Py_UNICODE_SIZE}" STREQUAL "${SIZEOF_WCHAR_T}")
+endif()
 
 
 
@@ -1181,7 +1181,7 @@ if(HAVE_GETHOSTBYNAME_R)
     )
   if(HAVE_GETHOSTBYNAME_R_6_ARG)
     set(HAVE_GETHOSTBYNAME_R 1)
-  else(HAVE_GETHOSTBYNAME_R_6_ARG)
+  else()
     # Checking gethostbyname_r with 5 args
     set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_gethostbyname_r_5_arg.c)
     file(WRITE ${check_src} "int main() {
@@ -1203,7 +1203,7 @@ if(HAVE_GETHOSTBYNAME_R)
       )
     if(HAVE_GETHOSTBYNAME_R_5_ARG)
       set(HAVE_GETHOSTBYNAME_R 1)
-    else(HAVE_GETHOSTBYNAME_R_5_ARG)
+    else()
       # Checking gethostbyname_r with 5 args
       set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/have_gethostbyname_r_3_arg.c)
       file(WRITE ${check_src} "int main() {
@@ -1223,12 +1223,12 @@ if(HAVE_GETHOSTBYNAME_R)
         )
       if(HAVE_GETHOSTBYNAME_R_3_ARG)
         set(HAVE_GETHOSTBYNAME_R 1)
-      endif(HAVE_GETHOSTBYNAME_R_3_ARG)
+      endif()
     endif()
-  endif(HAVE_GETHOSTBYNAME_R_6_ARG)
-else(HAVE_GETHOSTBYNAME_R)
+  endif()
+else()
   check_symbol_exists(gethostbyname   "${CFG_HEADERS}" HAVE_GETHOSTBYNAME)
-endif(HAVE_GETHOSTBYNAME_R)
+endif()
 
 check_symbol_exists(gai_strerror    "${CFG_HEADERS}" HAVE_GAI_STRERROR)
 check_symbol_exists(getaddrinfo     "${CFG_HEADERS}" HAVE_GETADDRINFO)
@@ -1238,7 +1238,7 @@ check_symbol_exists(hstrerror       "${CFG_HEADERS}" HAVE_HSTRERROR)
 check_symbol_exists(inet_aton       "${CFG_HEADERS}" HAVE_INET_ATON)
 if(NOT HAVE_INET_ATON)
   check_library_exists(resolv inet_aton "" HAVE_LIBRESOLV)
-endif(NOT HAVE_INET_ATON)
+endif()
 check_symbol_exists(inet_pton       "${CFG_HEADERS}" HAVE_INET_PTON)
 
 check_type_exists("struct addrinfo" "${CFG_HEADERS}" HAVE_ADDRINFO)
@@ -1343,7 +1343,7 @@ cmake_pop_check_state()
 if(CMAKE_SYSTEM MATCHES BlueGene)
   # Todo: Display message
   set(WITH_THREAD OFF CACHE STRING "System doesn't support multithreading" FORCE)
-endif(CMAKE_SYSTEM MATCHES BlueGene)
+endif()
 
 
 #######################################################################
@@ -1367,7 +1367,7 @@ if(HAVE_READLINE_READLINE_H)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif(HAVE_READLINE_READLINE_H)
+endif()
 
 
 #######################################################################
@@ -1390,7 +1390,7 @@ if(HAVE_CURSES_H)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif(HAVE_CURSES_H)
+endif()
 
 
 #######################################################################
@@ -1408,14 +1408,14 @@ if(HAVE_DLFCN_H)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif(HAVE_DLFCN_H)
+endif()
 
 
 if(HAVE_DLOPEN) # OR .... )
   set(HAVE_DYNAMIC_LOADING 1)
-else(HAVE_DLOPEN)
+else()
   set(HAVE_DYNAMIC_LOADING 0)
-endif(HAVE_DLOPEN)
+endif()
 
 
 #######################################################################
@@ -1426,37 +1426,37 @@ endif(HAVE_DLOPEN)
 check_type_exists(gid_t sys/types.h HAVE_GID_T)
 if(NOT HAVE_GID_T)
   set(gid_t int)
-else(NOT HAVE_GID_T)
+else()
   set(gid_t 0)
-endif(NOT HAVE_GID_T)
+endif()
 
 check_type_exists(mode_t sys/types.h HAVE_MODE_T)
 if(NOT HAVE_MODE_T)
   set(mode_t int)
-else(NOT HAVE_MODE_T)
+else()
   set(mode_t 0)
-endif(NOT HAVE_MODE_T)
+endif()
 
 check_type_exists(off_t sys/types.h HAVE_OFF_T)
 if(NOT HAVE_OFF_T)
   set(off_t "long int")
-else(NOT HAVE_OFF_T)
+else()
   set(off_t 0)
-endif(NOT HAVE_OFF_T)
+endif()
 
 check_type_exists(pid_t sys/types.h HAVE_PID_T)
 if(NOT HAVE_PID_T)
   set(pid_t int)
-else(NOT HAVE_PID_T)
+else()
   set(pid_t 0)
-endif(NOT HAVE_PID_T)
+endif()
 
 check_type_exists(size_t sys/types.h HAVE_SIZE_T)
 if(NOT HAVE_SIZE_T)
   set(size_t "unsigned int")
-else(NOT HAVE_SIZE_T)
+else()
   set(size_t 0)
-endif(NOT HAVE_SIZE_T)
+endif()
 
 check_type_exists("uint64_t" "${CFG_HEADERS}" HAVE_UINT64_T)
 check_type_exists("int64_t" "${CFG_HEADERS}" HAVE_INT64_T)
@@ -1470,45 +1470,45 @@ endif()
 check_type_exists(socklen_t sys/socket.h HAVE_SOCKLEN_T)
 if(NOT HAVE_SOCKLEN_T)
   set(socklen int)
-else(NOT HAVE_SOCKLEN_T)
+else()
   set(socklen_t 0)
-endif(NOT HAVE_SOCKLEN_T)
+endif()
 
 check_type_exists(uid_t sys/types.h HAVE_UID_T)
 if(NOT HAVE_UID_T)
   set(uid_t int)
-else(NOT HAVE_UID_T)
+else()
   set(uid_t 0)
-endif(NOT HAVE_UID_T)
+endif()
 
 check_type_exists(clock_t time.h HAVE_CLOCK_T)
 if(NOT HAVE_CLOCK_T)
   set(clock_t long)
-else(NOT HAVE_CLOCK_T)
+else()
   set(clock_t 0)
-endif(NOT HAVE_CLOCK_T)
+endif()
 
 
 check_c_source_compiles("int main() {const int i;}" const_WORKS)
 if(NOT const_WORKS)
   set(const 1)
-else(NOT const_WORKS)
+else()
   set(const 0)
-endif(NOT const_WORKS)
+endif()
 
 check_c_source_compiles("int main() {signed int i;}" signed_WORKS)
 if(NOT signed_WORKS)
   set(signed 1)
-else(NOT signed_WORKS)
+else()
   set(signed 0)
-endif(NOT signed_WORKS)
+endif()
 
 check_c_source_compiles("int main() {volatile int i;}" volatile_WORKS)
 if(NOT volatile_WORKS)
   set(volatile 1)
-else(NOT volatile_WORKS)
+else()
   set(volatile 0)
-endif(NOT volatile_WORKS)
+endif()
 
 
 # Check for prototypes
@@ -1523,15 +1523,15 @@ python_platform_test(
 
 if(HAVE_STDARG_PROTOTYPES)
    set(vaargsHeader "stdarg.h")
-else(HAVE_STDARG_PROTOTYPES)
+else()
    set(vaargsHeader "varargs.h")
-endif(HAVE_STDARG_PROTOTYPES)
+endif()
 check_c_source_compiles("#include <${vaargsHeader}>\n int main() {va_list list1, list2; list1 = list2;}" NOT_VA_LIST_IS_ARRAY)
 if(NOT_VA_LIST_IS_ARRAY)
   set(VA_LIST_IS_ARRAY 0)
-else(NOT_VA_LIST_IS_ARRAY)
+else()
   set(VA_LIST_IS_ARRAY 1)
-endif(NOT_VA_LIST_IS_ARRAY)
+endif()
 
 # Check whether char is unsigned
 set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_c_char_unsigned.c)
@@ -1545,7 +1545,7 @@ python_platform_test(
   )
 if(HAVE_C_CHAR_UNSIGNED AND NOT CMAKE_C_COMPILER_ID MATCHES "^GNU$")
   set(__CHAR_UNSIGNED__ 1)
-endif(HAVE_C_CHAR_UNSIGNED AND NOT CMAKE_C_COMPILER_ID MATCHES "^GNU$")
+endif()
 
 
 #######################################################################
@@ -2153,7 +2153,7 @@ if(ZLIB_LIBRARY)
 
   set(CFG_HEADERS ${CFG_HEADERS_SAVE})
   cmake_pop_check_state()
-endif(ZLIB_LIBRARY)
+endif()
 
 ############################################
 
@@ -2169,54 +2169,54 @@ int main(int argc, char* argv[]){FSIORefNum fRef = 0; return 0;}")
     ${check_src}
     DIRECT
     )
-endif(APPLE)
+endif()
 
 # todo 
 set(HAVE_UCS4_TCL 0)
 set(PTHREAD_SYSTEM_SCHED_SUPPORTED 1)
 set(HAVE_DEVICE_MACROS ${HAVE_MAKEDEV})
 
-endif(WIN32)
+endif()
 
 # setup the python platform
 set(PY_PLATFORM generic)
 
 if(CMAKE_SYSTEM MATCHES Linux)
   set(PY_PLATFORM linux2)
-endif(CMAKE_SYSTEM MATCHES Linux)
+endif()
 
 if(CMAKE_SYSTEM MATCHES Darwin)
   set(PY_PLATFORM darwin)
-endif(CMAKE_SYSTEM MATCHES Darwin)
+endif()
 
 if(CMAKE_SYSTEM MATCHES FreeBSD)
   set(PY_PLATFORM freebsd5)  # which version to use ?
-endif(CMAKE_SYSTEM MATCHES FreeBSD)
+endif()
 
 if(CMAKE_SYSTEM MATCHES NetBSD)
   set(PY_PLATFORM netbsd1)
-endif(CMAKE_SYSTEM MATCHES NetBSD)
+endif()
 
 if(CMAKE_SYSTEM MATCHES AIX)
   set(PY_PLATFORM aix4)
-endif(CMAKE_SYSTEM MATCHES AIX)
+endif()
 
 if(CMAKE_SYSTEM MATCHES BeOS)
   set(PY_PLATFORM beos5)
-endif(CMAKE_SYSTEM MATCHES BeOS)
+endif()
 
 if(CMAKE_SYSTEM MATCHES IRIX)
   set(PY_PLATFORM irix6)
-endif(CMAKE_SYSTEM MATCHES IRIX)
+endif()
 
 if(CMAKE_SYSTEM MATCHES SunOS)
   set(PY_PLATFORM sunos5)
-endif(CMAKE_SYSTEM MATCHES SunOS)
+endif()
 
 if(CMAKE_SYSTEM MATCHES UnixWare)
   set(PY_PLATFORM unixware7)
-endif(CMAKE_SYSTEM MATCHES UnixWare)
+endif()
 
 if(CMAKE_SYSTEM MATCHES Windows)
   set(PY_PLATFORM win32)
-endif(CMAKE_SYSTEM MATCHES Windows)
+endif()

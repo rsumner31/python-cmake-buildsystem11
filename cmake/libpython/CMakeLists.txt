@@ -42,7 +42,7 @@ if(UNIX)
     set(PYTHONPATH "${EXTRA_PYTHONPATH}:lib-dynload:plat-${PY_PLATFORM}")
     if(ENABLE_TKINTER)
         set(PYTHONPATH "${PYTHONPATH}:lib-tk")
-    endif(ENABLE_TKINTER)
+    endif()
     set_property(
         SOURCE ${SRC_DIR}/Modules/getpath.c
         PROPERTY COMPILE_DEFINITIONS

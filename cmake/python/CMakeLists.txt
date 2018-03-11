@@ -12,7 +12,7 @@ set_property(
 # version.
 if(BUILD_SHARED)
     target_link_libraries(python libpython-shared)
-else(BUILD_SHARED)
+else()
     target_link_libraries(python libpython-static)
     set_target_properties(python PROPERTIES COMPILE_DEFINITIONS Py_NO_ENABLE_SHARED)
 endif()

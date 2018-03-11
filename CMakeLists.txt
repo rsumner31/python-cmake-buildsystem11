@@ -336,7 +336,7 @@ endif(UNIX)
 if(MSVC)
     string(REPLACE "/Ob2" "/Ob1" CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE}) # InlineFunctionExpansion=1
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "Flags used by the compiler during release builds" FORCE)
-endif(MSVC)
+endif()
 
 if(NOT WIN32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
@@ -345,9 +345,9 @@ endif(NOT WIN32)
 # Useful additional variables that extensions can use.
 if(UNIX AND NOT APPLE)
     set(LINUX ON)
-else(UNIX AND NOT APPLE)
+else()
     set(LINUX OFF)
-endif(UNIX AND NOT APPLE)
+endif()
 
 # Define python executable wrapper command to ensure
 # python executable resolves the expected python library.

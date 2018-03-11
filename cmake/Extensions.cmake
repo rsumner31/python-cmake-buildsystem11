@@ -83,9 +83,9 @@ function(add_python_extension name)
         set(extensions_disabled "${extensions_disabled}${name} (not set: ${missing_deps});"
              CACHE INTERNAL "" FORCE)
         return()
-    else(missing_deps)
+    else()
         set(extensions_enabled "${extensions_enabled}${name};" CACHE INTERNAL "" FORCE)
-    endif(missing_deps)
+    endif()
 
     # Callers to this function provide source files relative to the Modules/
     # directory.  We need to get absolute paths for them all.
@@ -152,7 +152,7 @@ function(add_python_extension name)
                 set_target_properties(${target_name} PROPERTIES
                     LINK_FLAGS -Wl,--enable-auto-import
                 )
-            endif(MINGW)
+            endif()
             set_target_properties(${target_name} PROPERTIES
                 SUFFIX .pyd
             )
@@ -163,7 +163,7 @@ function(add_python_extension name)
                 LINK_FLAGS -Wl,-undefined,dynamic_lookup
                 SUFFIX .so
             )
-        endif(APPLE)
+        endif()
 
         # Turn off the "lib" prefix and add any compiler definitions
         set_target_properties(${target_name} PROPERTIES
@@ -177,7 +177,7 @@ function(add_python_extension name)
         if(ADD_PYTHON_EXTENSION_DEFINITIONS)
             set_target_properties(${target_name} PROPERTIES
                 COMPILE_DEFINITIONS "${ADD_PYTHON_EXTENSION_DEFINITIONS}")
-        endif(ADD_PYTHON_EXTENSION_DEFINITIONS)
+        endif()
 
         # XXX Uncomment when CMake >= 2.8.8 is required
         #install(TARGETS ${target_name}
@@ -195,7 +195,7 @@ function(show_extension_summary)
         message(STATUS "")
         foreach(line ${extensions_disabled})
             message(STATUS "    ${line}")
-        endforeach(line)
+        endforeach()
         message(STATUS "")
-    endif(extensions_disabled)
-endfunction(show_extension_summary)
+    endif()
+endfunction()
