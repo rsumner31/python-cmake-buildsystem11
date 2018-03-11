@@ -365,6 +365,16 @@ include_directories(${INCLUDE_BUILD_DIR})
 include_directories(${PYCONFIG_BUILD_DIR})
 include_directories(${SRC_DIR}/Python)
 
+# Install 'pyconfig.h'
+install(FILES ${PYCONFIG_BUILD_DIR}/pyconfig.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/)
+
+# Set include directories
+include_directories(cmake)
+include_directories(${INCLUDE_BUILD_DIR})
+include_directories(${PYCONFIG_BUILD_DIR})
+include_directories(${SRC_DIR}/Python)
+
 # Set cflags used by all components
 if(CMAKE_C_COMPILER_ID MATCHES GNU)
     append_if_absent(CMAKE_C_FLAGS "-Wall")

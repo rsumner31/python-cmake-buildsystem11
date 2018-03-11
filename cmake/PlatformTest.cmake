@@ -7,7 +7,7 @@ else()
 endif()
 
 macro(python_platform_test var description srcfile invert)
-  if(NOT DEFINED "${var}_COMPILED")
+  IF("${var}_COMPILED" MATCHES "^${var}_COMPILED$")
     message(STATUS "${description}")
 
     set(MACRO_CHECK_FUNCTION_DEFINITIONS
@@ -66,7 +66,7 @@ macro(python_platform_test var description srcfile invert)
 endmacro()
 
 macro(python_platform_test_run var description srcfile invert)
-  if(NOT DEFINED "${var}")
+  if("${var}" MATCHES "^${var}$")
     message(STATUS "${description}")
 
     set(MACRO_CHECK_FUNCTION_DEFINITIONS
@@ -147,47 +147,3 @@ macro(python_platform_test_run var description srcfile invert)
   endif()
 endmacro()
 
-macro(python_check_function name var)
-  set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_fn_c_check_func_${name}.c)
-  file(WRITE ${check_src} "
-/* Define ${name} to an innocuous variant, in case <limits.h> declares ${name}.
-   For example, HP-UX 11i <limits.h> declares gettimeofday.  */
-#define ${name} innocuous_${name}
-
-/* System header to define __stub macros and hopefully few prototypes,
-    which can conflict with char ${name} (); below.
-    Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
-    <limits.h> exists even on freestanding compilers.  */
-
-#ifdef __STDC__
-# include <limits.h>
-#else
-# include <assert.h>
-#endif
-
-#undef ${name}
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern \"C\"
-#endif
-char ${name} ();
-/* The GNU C library defines this for functions which it implements
-    to always fail with ENOSYS.  Some functions are actually named
-    something starting with __ and the normal name is an alias.  */
-#if defined __stub_${name} || defined __stub___${name}
-choke me
-#endif
-
-int main () { return ${name} (); }
-")
-
-  python_platform_test(
-    ${var}
-    "Checking for ${name}"
-    ${check_src}
-    DIRECT
-    )
-endmacro()
