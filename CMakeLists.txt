@@ -251,9 +251,9 @@ if(MSVC)
     set(INCLUDE_INSTALL_DIR include)
 endif()
 # Build tree directory
-set(BIN_BUILD_DIR ${CMAKE_BINARY_DIR}/bin)
-set(CONFIG_BUILD_DIR ${CMAKE_BINARY_DIR}/${CONFIG_INSTALL_DIR})
-set(EXTENSION_BUILD_DIR ${CMAKE_BINARY_DIR}/${PYTHONHOME}/lib-dynload)
+set(BIN_BUILD_DIR ${PROJECT_BINARY_DIR}/bin)
+set(CONFIG_BUILD_DIR ${PROJECT_BINARY_DIR}/${CONFIG_INSTALL_DIR})
+set(EXTENSION_BUILD_DIR ${PROJECT_BINARY_DIR}/${PYTHONHOME}/lib-dynload)
 set(INCLUDE_BUILD_DIR ${SRC_DIR}/Include)
 
 # Find any dependencies
@@ -351,7 +351,7 @@ if(BUILD_SHARED AND UNIX)
     if(APPLE)
         set(_envvar DYLD_LIBRARY_PATH)
     endif()
-    set(PYTHON_WRAPPER_COMMAND env ${_envvar}=${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR})
+    set(PYTHON_WRAPPER_COMMAND env ${_envvar}=${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR})
 endif()
 
 # Add extension modules
@@ -397,7 +397,7 @@ add_custom_target(generate_graminit
         ${PROJECT_BINARY_DIR}/CMakeFiles/graminit.c
         ${SRC_DIR}/Python/graminit.c
     DEPENDS pgen
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Include/graminit.h' and '${SRC_DIR}/Python/graminit.c'."
     VERBATIM
 )
@@ -411,7 +411,7 @@ add_custom_target(generate_opcode_h
         ${PROJECT_BINARY_DIR}/CMakeFiles/opcode.h
         ${SRC_DIR}/Include/opcode.h
     DEPENDS python
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Include/opcode.h'."
     VERBATIM
 )
@@ -422,7 +422,7 @@ add_custom_target(generate_python_ast_h
         -h ${SRC_DIR}/Include
         ${SRC_DIR}/Parser/Python.asdl
     DEPENDS python
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Include/Python-ast.h'"
     VERBATIM
 )
@@ -433,7 +433,7 @@ add_custom_target(generate_python_ast_c
         -c ${SRC_DIR}/Python
         ${SRC_DIR}/Parser/Python.asdl
     DEPENDS python
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Python/Python-ast.c'"
     VERBATIM
 )
@@ -461,9 +461,9 @@ if(UNIX)
 
     # python.pc
     configure_file(cmake/python.pc.in
-                  ${CMAKE_BINARY_DIR}/Misc/python-${LIBPYTHON_VERSION}.pc @ONLY)
+                  ${PROJECT_BINARY_DIR}/Misc/python-${LIBPYTHON_VERSION}.pc @ONLY)
     configure_file(cmake/python.pc.in
-                  ${CMAKE_BINARY_DIR}/Misc/python-${PY_VERSION_MAJOR}.pc @ONLY)
+                  ${PROJECT_BINARY_DIR}/Misc/python-${PY_VERSION_MAJOR}.pc @ONLY)
     configure_file(cmake/python.pc.in
                   ${CMAKE_BINARY_DIR}/Misc/python.pc @ONLY)
     install(FILES
@@ -502,7 +502,7 @@ install(CODE "file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${EXTENSION_INSTALL
 
 if(BUILD_TESTING)
     set(TESTOPTS -l)
-    set(TESTPROG ${CMAKE_BINARY_DIR}/${PYTHONHOME}/test/regrtest.py)
+    set(TESTPROG ${PROJECT_BINARY_DIR}/${PYTHONHOME}/test/regrtest.py)
     set(TESTPYTHONOPTS )
     if(IS_PY2)
       set(TESTPYTHON $<TARGET_FILE:python> -Wd -3 -E -tt ${TESTPYTHONOPTS})
@@ -533,7 +533,7 @@ set(python_config ${CONFIG_BUILD_DIR}/PythonConfig.cmake)
 configure_package_config_file(
     cmake/PythonConfig.cmake.in
     ${python_config}
-    INSTALL_DESTINATION ${CMAKE_BINARY_DIR}
+    INSTALL_DESTINATION ${PROJECT_BINARY_DIR}
     PATH_VARS CONFIG_DIR_CONFIG INCLUDE_DIR_CONFIG
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
@@ -542,7 +542,7 @@ configure_package_config_file(
 set(CONFIG_DIR_CONFIG ${CONFIG_INSTALL_DIR})
 set(INCLUDE_DIR_CONFIG ${INCLUDE_INSTALL_DIR})
 set(PYTHON_CONFIG_CODE "")
-set(python_install_config ${CMAKE_BINARY_DIR}/CMakeFiles/PythonConfig.cmake)
+set(python_install_config ${PROJECT_BINARY_DIR}/CMakeFiles/PythonConfig.cmake)
 configure_package_config_file(
     cmake/PythonConfig.cmake.in
     ${python_install_config}

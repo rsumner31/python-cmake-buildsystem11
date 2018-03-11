@@ -49,9 +49,9 @@ if(UNIX AND PY_VERSION VERSION_GREATER "2.7.4")
         COMMAND ${PYTHON_WRAPPER_COMMAND} $<TARGET_FILE:python> -E -S -m sysconfig --generate-posix-vars
         COMMAND ${CMAKE_COMMAND}
           -DBIN_BUILD_DIR:PATH=${BIN_BUILD_DIR}
-          -DPYTHON_BINARY_DIR:PATH=${CMAKE_BINARY_DIR}
+          -DPYTHON_BINARY_DIR:PATH=${PROJECT_BINARY_DIR}
           -DEXTENSION_INSTALL_DIR:PATH=${EXTENSION_INSTALL_DIR}
-          -P ${CMAKE_SOURCE_DIR}/cmake/UpdateSysconfig.cmake
+          -P ${PROJECT_SOURCE_DIR}/cmake/UpdateSysconfig.cmake
         COMMENT "Relocate _sysconfigdata.py and update pybuilddir.txt"
         WORKING_DIRECTORY ${BIN_BUILD_DIR}
         DEPENDS python

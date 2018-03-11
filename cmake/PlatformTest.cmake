@@ -1,13 +1,13 @@
 if(CMAKE_VERSION VERSION_GREATER 2.8.7)
   include(CMakeExpandImportedTargets)
 else()
-  include(${CMAKE_SOURCE_DIR}/cmake/CMakeExpandImportedTargets.cmake)
+  include(${PROJECT_SOURCE_DIR}/cmake/CMakeExpandImportedTargets.cmake)
 endif()
 
 macro(python_platform_test var description srcfile invert)
   IF("${var}_COMPILED" MATCHES "^${var}_COMPILED$")
     message(STATUS "${description}")
-    
+
     set(MACRO_CHECK_FUNCTION_DEFINITIONS
       "-D${var} ${CMAKE_REQUIRED_FLAGS}")
     if(CMAKE_REQUIRED_LIBRARIES)
@@ -24,7 +24,7 @@ macro(python_platform_test var description srcfile invert)
     else()
       set(CHECK_C_SOURCE_COMPILES_ADD_INCLUDES)
     endif()
-    
+
     try_compile(${var}_COMPILED
       ${CMAKE_CURRENT_BINARY_DIR}
       ${srcfile}
@@ -66,7 +66,7 @@ endmacro()
 macro(python_platform_test_run var description srcfile invert)
   if("${var}" MATCHES "^${var}$")
     message(STATUS "${description}")
-    
+
     set(MACRO_CHECK_FUNCTION_DEFINITIONS
       "-D${var} ${CMAKE_REQUIRED_FLAGS}")
     if(CMAKE_REQUIRED_LIBRARIES)
@@ -83,7 +83,7 @@ macro(python_platform_test_run var description srcfile invert)
     else()
       set(CHECK_C_SOURCE_COMPILES_ADD_INCLUDES)
     endif()
-    
+
     try_run(${var} ${var}_COMPILED
       ${CMAKE_CURRENT_BINARY_DIR}
       ${srcfile}
