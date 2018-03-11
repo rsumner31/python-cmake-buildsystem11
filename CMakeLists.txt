@@ -17,9 +17,7 @@ project(Python${PY_VERSION_MAJOR}${PY_VERSION_MINOR} C)
 # Include helper functions
 include(cmake/Assembler.cmake)
 include(cmake/Extensions.cmake)
-include(CMakeDependentOption)
 include(CMakeParseArguments)
-include(CTest)
 
 # Options
 option(DOWNLOAD_SOURCES "Automatically download the Python sources" ON)
@@ -275,7 +273,7 @@ set(LIBPYTHON_LIBDIR ${LIBDIR})
 set(LIBPYTHON_ARCHIVEDIR ${LIBDIR})
 set(LIBPYTHON_STATIC_ARCHIVEDIR ${LIBDIR})
 if(WIN32)
-    set(LIBPYTHON_LIBDIR ${BIN_INSTALL_DIR})
+    set(LIBPYTHON_LIBDIR ${BINDIR})
     set(LIBPYTHON_ARCHIVEDIR ${ARCHIVEDIR})
     set(LIBPYTHON_STATIC_ARCHIVEDIR static-${ARCHIVEDIR})
 endif()
@@ -323,6 +321,9 @@ endif(UNIX)
 install(FILES ${PYCONFIG_BUILD_DIR}/pyconfig.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/)
 
+find_path(SQLITE3_INCLUDE_PATH sqlite3.h)
+find_library(SQLITE3_LIBRARY sqlite3)
+
 # Set include directories
 include_directories(cmake)
 include_directories(${INCLUDE_BUILD_DIR})
@@ -336,7 +337,7 @@ endif(UNIX)
 if(MSVC)
     string(REPLACE "/Ob2" "/Ob1" CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE}) # InlineFunctionExpansion=1
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "Flags used by the compiler during release builds" FORCE)
-endif()
+endif(MSVC)
 
 if(NOT WIN32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
@@ -345,7 +346,7 @@ endif(NOT WIN32)
 # Useful additional variables that extensions can use.
 if(UNIX AND NOT APPLE)
     set(LINUX ON)
-else()
+else(UNIX AND NOT APPLE)
     set(LINUX OFF)
 endif()
 
@@ -368,7 +369,7 @@ set(builtin_includedirs "" CACHE INTERNAL "" FORCE)
 set(builtin_definitions "" CACHE INTERNAL "" FORCE)
 set(extensions_enabled "" CACHE INTERNAL "" FORCE)
 set(extensions_disabled "" CACHE INTERNAL "" FORCE)
-add_subdirectory(cmake/extensions CMakeBuild/extensions)
+add_subdirectory(cmake/extensions)
 
 # Add the other subdirectories
 add_subdirectory(cmake/libpython CMakeBuild/libpython)
