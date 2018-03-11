@@ -11,6 +11,8 @@ lib
 
 # Ignore all dotfiles...
 .*
+!.circleci-matrix.yml
+!.travis.yml
 
 # Ignore all back-up files...
 *~
@@ -27,3 +29,11 @@ tags
 
 # Ignore pyc files
 *.pyc
+
+# Ignore Python source directories
+cython-*/
+Python-*/
+
+# Ignore Python source archives
+Python-*.tgz
+Python-*.zip
