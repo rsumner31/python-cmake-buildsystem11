@@ -22,33 +22,31 @@ if(CMAKE_VERSION VERSION_LESS 2.8.12)
     endif()
 endif()
 
-set(WIN32_BUILTIN )
-if(WIN32)
-    set(WIN32_BUILTIN BUILTIN)
+set(MSVC_BUILTIN )
+if(MSVC)
+    set(MSVC_BUILTIN BUILTIN)
 endif()
 
 # XXX Following modules are missing:
 # lzma
 
-add_python_extension(array ${WIN32_BUILTIN} SOURCES arraymodule.c)
-add_python_extension(audioop ${WIN32_BUILTIN} SOURCES audioop.c)
-add_python_extension(_bisect ${WIN32_BUILTIN} SOURCES _bisectmodule.c)
-add_python_extension(cmath REQUIRES HAVE_LIBM ${WIN32_BUILTIN} SOURCES _math.c cmathmodule.c LIBRARIES ${M_LIBRARIES})
-add_python_extension(_codecs_cn ${WIN32_BUILTIN} SOURCES cjkcodecs/_codecs_cn.c)
-add_python_extension(_codecs_hk ${WIN32_BUILTIN} SOURCES cjkcodecs/_codecs_hk.c)
-add_python_extension(_codecs_iso2022 ${WIN32_BUILTIN} SOURCES cjkcodecs/_codecs_iso2022.c)
-add_python_extension(_codecs_jp ${WIN32_BUILTIN} SOURCES cjkcodecs/_codecs_jp.c)
-add_python_extension(_codecs_kr ${WIN32_BUILTIN} SOURCES cjkcodecs/_codecs_kr.c)
-add_python_extension(_codecs_tw ${WIN32_BUILTIN} SOURCES cjkcodecs/_codecs_tw.c)
+add_python_extension(array ${MSVC_BUILTIN} SOURCES arraymodule.c)
+add_python_extension(audioop ${MSVC_BUILTIN} SOURCES audioop.c)
+add_python_extension(_bisect ${MSVC_BUILTIN} SOURCES _bisectmodule.c)
+add_python_extension(cmath REQUIRES HAVE_LIBM ${MSVC_BUILTIN} SOURCES _math.c cmathmodule.c LIBRARIES ${M_LIBRARIES})
+add_python_extension(_codecs_cn ${MSVC_BUILTIN} SOURCES cjkcodecs/_codecs_cn.c)
+add_python_extension(_codecs_hk ${MSVC_BUILTIN} SOURCES cjkcodecs/_codecs_hk.c)
+add_python_extension(_codecs_iso2022 ${MSVC_BUILTIN} SOURCES cjkcodecs/_codecs_iso2022.c)
+add_python_extension(_codecs_jp ${MSVC_BUILTIN} SOURCES cjkcodecs/_codecs_jp.c)
+add_python_extension(_codecs_kr ${MSVC_BUILTIN} SOURCES cjkcodecs/_codecs_kr.c)
+add_python_extension(_codecs_tw ${MSVC_BUILTIN} SOURCES cjkcodecs/_codecs_tw.c)
 add_python_extension(_collections ALWAYS_BUILTIN SOURCES _collectionsmodule.c) # Container types
-add_python_extension(cPickle ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES cPickle.c)
-set(crypt2_NAME crypt)
+add_python_extension(cPickle ${MSVC_BUILTIN} REQUIRES IS_PY2 SOURCES cPickle.c)
 set(crypt2_SOURCES cryptmodule.c)
-set(crypt3_NAME _crypt)
 set(crypt3_SOURCES _cryptmodule.c)
-add_python_extension(${crypt${PY_VERSION_MAJOR}_NAME} REQUIRES HAVE_LIBCRYPT SOURCES ${crypt${PY_VERSION_MAJOR}_SOURCES} LIBRARIES ${HAVE_LIBCRYPT})
-add_python_extension(cStringIO ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES cStringIO.c)
-add_python_extension(_csv ${WIN32_BUILTIN} SOURCES _csv.c)
+add_python_extension(crypt REQUIRES HAVE_LIBCRYPT SOURCES ${crypt${PY_VERSION_MAJOR}_SOURCES} LIBRARIES ${HAVE_LIBCRYPT})
+add_python_extension(cStringIO ${MSVC_BUILTIN} REQUIRES IS_PY2 SOURCES cStringIO.c)
+add_python_extension(_csv ${MSVC_BUILTIN} SOURCES _csv.c)
 add_python_extension(_ctypes_test SOURCES _ctypes/_ctypes_test.c)
 set(datetime2_NAME datetime)
 set(datetime2_SOURCES datetimemodule.c)
@@ -57,14 +55,14 @@ set(datetime3_SOURCES _datetimemodule.c)
 if(UNIX)
   list(APPEND datetime${PY_VERSION_MAJOR}_SOURCES timemodule.c)
 endif()
-add_python_extension(${datetime${PY_VERSION_MAJOR}_NAME} ${WIN32_BUILTIN} REQUIRES HAVE_LIBM BUILTIN SOURCES ${datetime${PY_VERSION_MAJOR}_SOURCES} LIBRARIES ${M_LIBRARIES})
+add_python_extension(${datetime${PY_VERSION_MAJOR}_NAME} ${MSVC_DATETIME} REQUIRES HAVE_LIBM BUILTIN SOURCES ${datetime${PY_VERSION_MAJOR}_SOURCES} LIBRARIES ${M_LIBRARIES})
 #if(ENABLE_DATETIME AND CMAKE_C_COMPILER_ID MATCHES GNU)
 #    set_property(SOURCE ${SRC_DIR}/Modules/datetimemodule.c PROPERTY COMPILE_FLAGS -Wno-unused-value)
 #endif()
-add_python_extension(_functools ${WIN32_BUILTIN} SOURCES _functoolsmodule.c) # Tools for working with functions and callable objects
-add_python_extension(future_builtins ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES future_builtins.c)
-add_python_extension(_heapq ${WIN32_BUILTIN} SOURCES _heapqmodule.c)
-add_python_extension(_hotshot ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES _hotshot.c)
+add_python_extension(_functools ${MSVC_BUILTIN} SOURCES _functoolsmodule.c) # Tools for working with functions and callable objects
+add_python_extension(future_builtins ${MSVC_BUILTIN} REQUIRES IS_PY2 SOURCES future_builtins.c)
+add_python_extension(_heapq ${MSVC_BUILTIN} SOURCES _heapqmodule.c)
+add_python_extension(_hotshot ${MSVC_BUILTIN} REQUIRES IS_PY2 SOURCES _hotshot.c)
 add_python_extension(_io BUILTIN SOURCES
     _io/_iomodule.c
     _io/bufferedio.c
@@ -74,33 +72,29 @@ add_python_extension(_io BUILTIN SOURCES
     _io/stringio.c
     _io/textio.c
 )
-add_python_extension(itertools ${WIN32_BUILTIN} SOURCES itertoolsmodule.c) # Functions creating iterators for efficient looping
-add_python_extension(_json ${WIN32_BUILTIN} SOURCES _json.c)
-add_python_extension(_locale ${WIN32_BUILTIN} SOURCES _localemodule.c) # access to ISO C locale support
-add_python_extension(_lsprof ${WIN32_BUILTIN} SOURCES _lsprof.c rotatingtree.c)
-add_python_extension(math ${WIN32_BUILTIN} SOURCES _math.c mathmodule.c)
-add_python_extension(mmap ${WIN32_BUILTIN} SOURCES mmapmodule.c)
-add_python_extension(_multibytecodec ${WIN32_BUILTIN} SOURCES cjkcodecs/multibytecodec.c)
-add_python_extension(operator ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES operator.c)
-add_python_extension(parser ${WIN32_BUILTIN} SOURCES parsermodule.c)
-add_python_extension(_random ${WIN32_BUILTIN} SOURCES _randommodule.c)
-add_python_extension(strop ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES stropmodule.c)
-add_python_extension(_struct ${WIN32_BUILTIN} SOURCES _struct.c)
+add_python_extension(itertools ${MSVC_BUILTIN} SOURCES itertoolsmodule.c) # Functions creating iterators for efficient looping
+add_python_extension(_json ${MSVC_BUILTIN} SOURCES _json.c)
+add_python_extension(_locale ${MSVC_BUILTIN} SOURCES _localemodule.c) # access to ISO C locale support
+add_python_extension(_lsprof ${MSVC_BUILTIN} SOURCES _lsprof.c rotatingtree.c)
+add_python_extension(math ${MSVC_BUILTIN} SOURCES _math.c mathmodule.c)
+add_python_extension(mmap ${MSVC_BUILTIN} SOURCES mmapmodule.c)
+add_python_extension(_multibytecodec ${MSVC_BUILTIN} SOURCES cjkcodecs/multibytecodec.c)
+add_python_extension(operator ${MSVC_BUILTIN} REQUIRES IS_PY2 SOURCES operator.c)
+add_python_extension(parser ${MSVC_BUILTIN} SOURCES parsermodule.c)
+add_python_extension(_random ${MSVC_BUILTIN} SOURCES _randommodule.c)
+add_python_extension(strop ${MSVC_BUILTIN} REQUIRES IS_PY2 SOURCES stropmodule.c)
+add_python_extension(_struct ${MSVC_BUILTIN} SOURCES _struct.c)
 add_python_extension(_testcapi SOURCES _testcapimodule.c)
-set(thread2_NAME thread)
-set(thread3_NAME _thread)
-set(thread2_SOURCES ${SRC_DIR}/Modules/threadmodule.c)
-set(thread3_SOURCES ${SRC_DIR}/Modules/_threadmodule.c)
-add_python_extension(${thread${PY_VERSION_MAJOR}_NAME} BUILTIN REQUIRES WITH_THREAD SOURCES ${thread${PY_VERSION_MAJOR}_SOURCES})
 add_python_extension(time BUILTIN REQUIRES HAVE_LIBM SOURCES timemodule.c LIBRARIES ${M_LIBRARIES} ${TIMEMODULE_LIB})
 add_python_extension(unicodedata SOURCES unicodedata.c)
 
 # Python3
+add_python_extension(_thread BUILTIN REQUIRES IS_PY3 SOURCES _threadmodule.c)
 add_python_extension(atexit BUILTIN REQUIRES IS_PY3 SOURCES atexitmodule.c) # Register functions to be run at interpreter-shutdown
 add_python_extension(_codecs BUILTIN REQUIRES IS_PY3 SOURCES _codecsmodule.c) # access to the builtin codecs and codec registry
 add_python_extension(faulthandler BUILTIN REQUIRES IS_PY3 SOURCES faulthandler.c)
 add_python_extension(_opcode BUILTIN REQUIRES IS_PY3 SOURCES _opcode.c)
-add_python_extension(_operator ${WIN32_BUILTIN} REQUIRES IS_PY3 SOURCES _operator.c)
+add_python_extension(_operator ${MSVC_BUILTIN} REQUIRES IS_PY3 SOURCES _operator.c)
 add_python_extension(_pickle BUILTIN REQUIRES IS_PY3 SOURCES _pickle.c)
 add_python_extension(_sre BUILTIN REQUIRES IS_PY3 SOURCES _sre.c) # Fredrik Lundh's new regular expressions
 add_python_extension(_stat BUILTIN REQUIRES IS_PY3 SOURCES _stat.c) # stat.h interface
@@ -181,16 +175,14 @@ if(UNIX)
         _multiprocessing/socket_connection.c
     )
     set(_multiprocessing3_SOURCES )
-    if(HAVE_SEM_OPEN AND NOT POSIX_SEMAPHORES_NOT_ENABLED)
-        list(APPEND _multiprocessing${PY_VERSION_MAJOR}_SOURCES
-            _multiprocessing/semaphore.c
-        )
-    endif()
     add_python_extension(_multiprocessing
         SOURCES _multiprocessing/multiprocessing.c
+                _multiprocessing/semaphore.c
                 ${_multiprocessing${PY_VERSION_MAJOR}_SOURCES}
-        REQUIRES WITH_THREAD
     )
+    if(ENABLE_MULTIPROCESSING AND CMAKE_C_COMPILER_ID MATCHES GNU)
+        set_property(SOURCE ${SRC_DIR}/Modules/semaphore.c PROPERTY COMPILE_FLAGS -Wimplicit-function-declaration)
+    endif()
 elseif(WIN32)
     set(_multiprocessing2_SOURCES
         _multiprocessing/pipe_connection.c
@@ -236,34 +228,30 @@ endif()
 set(_libffi_system_dir ${CMAKE_SYSTEM_PROCESSOR})
 if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "i686")
   set(_libffi_system_dir "x86")
-elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "amd64")
+elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
   set(_libffi_system_dir "x86")
 elseif("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm")
   set(_libffi_system_dir "arm")
 endif()
-# Common ctypes sources
-set(ctypes_COMMON_SOURCES
-    _ctypes/_ctypes.c
-    _ctypes/callbacks.c
-    _ctypes/callproc.c
-    _ctypes/stgdict.c
-    _ctypes/cfield.c
-)
 # ctypes is different on Windows
 if(WIN32)
     if(MINGW)
-      add_python_extension(_ctypes
-          SOURCES ${ctypes_COMMON_SOURCES}
-                  _ctypes/libffi_mingw/closures.c
-                  _ctypes/libffi_mingw/debug.c
-                  _ctypes/libffi_mingw/prep_cif.c
-                  _ctypes/libffi_mingw/raw_api.c
-                  _ctypes/libffi_mingw/${_libffi_system_dir}/ffi.c
-                  _ctypes/libffi_mingw/${_libffi_system_dir}/win32.S
-          INCLUDEDIRS ${SRC_DIR}/Modules/_ctypes/libffi/src/${_libffi_system_dir}
-                      ${SRC_DIR}/Modules/_ctypes/libffi/include
-          DEFINITIONS X86_WIN32
-        )
+    add_python_extension(_ctypes
+        SOURCES _ctypes/_ctypes.c
+                _ctypes/callbacks.c
+                _ctypes/callproc.c
+                _ctypes/cfield.c
+                _ctypes/libffi_mingw/closures.c
+                _ctypes/libffi_mingw/debug.c
+                _ctypes/libffi_mingw/prep_cif.c
+                _ctypes/libffi_mingw/raw_api.c
+                _ctypes/libffi_mingw/${_libffi_system_dir}/ffi.c
+                _ctypes/libffi_mingw/${_libffi_system_dir}/win32.S
+                _ctypes/stgdict.c
+        INCLUDEDIRS ${SRC_DIR}/Modules/_ctypes/libffi/src/${_libffi_system_dir}
+                    ${SRC_DIR}/Modules/_ctypes/libffi/include
+        DEFINITIONS X86_WIN32
+      )
     else() # Visual Studio
       if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
           enable_language(ASM_MASM)
@@ -272,63 +260,59 @@ if(WIN32)
           set(_ctype_arch_impl win32.c)
       endif()
       add_python_extension(_ctypes
-          SOURCES ${ctypes_COMMON_SOURCES}
+          SOURCES _ctypes/_ctypes.c
+                  _ctypes/callbacks.c
+                  _ctypes/callproc.c
+                  _ctypes/cfield.c
                   _ctypes/malloc_closure.c
+                  _ctypes/stgdict.c
                   _ctypes/libffi_msvc/prep_cif.c
                   _ctypes/libffi_msvc/ffi.c
                   _ctypes/libffi_msvc/${_ctype_arch_impl}
-          REQUIRES BUILD_LIBPYTHON_SHARED
+          REQUIRES BUILD_SHARED
           INCLUDEDIRS ${SRC_DIR}/Modules/_ctypes/libffi_msvc
         )
     endif()
 else()
     set(_libffi_system_extra_src)
     if(APPLE)
-        add_python_extension(_ctypes
-            SOURCES ${ctypes_COMMON_SOURCES}
-                    _ctypes/malloc_closure.c
-                    _ctypes/darwin/dlfcn_simple.c
-                    _ctypes/libffi_osx/ffi.c
-                    _ctypes/libffi_osx/x86/darwin64.S
-                    _ctypes/libffi_osx/x86/x86-darwin.S
-                    _ctypes/libffi_osx/x86/x86-ffi_darwin.c
-                    _ctypes/libffi_osx/x86/x86-ffi64.c
-            INCLUDEDIRS ${SRC_DIR}/Modules/_ctypes/libffi_osx/include
-                        ${SRC_DIR}/Modules/_ctypes/darwin
-            DEFINITIONS MACOSX
-        )
+        # TODO - Jc:02/20/2013
+        #add_python_extension(_ctypes
+        #    SOURCES _ctypes/_ctypes.c
+        #            _ctypes/callbacks.c
+        #            _ctypes/callproc.c
+        #            _ctypes/cfield.c
+        #            _ctypes/libffi_osx/src/closures.c
+        #            _ctypes/libffi_osx/${_libffi_system_dir}/ffi.c
+        #            _ctypes/libffi_osx/${_libffi_system_dir}/ffi64.c
+        #            _ctypes/libffi_osx/src/prep_cif.c
+        #            _ctypes/stgdict.c
+        #            _ctypes/libffi_osx/${_libffi_system_dir}/sysv.S
+        #            _ctypes/libffi_osx/${_libffi_system_dir}/darwin64.S
+        #    INCLUDEDIRS ${SRC_DIR}/Modules/_ctypes/libffi/src/${_libffi_system_dir}
+        #                ${SRC_DIR}/Modules/_ctypes/libffi/include
+        #)
     else()
         if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
           set(_libffi_system_extra_src
                 _ctypes/libffi/src/${_libffi_system_dir}/ffi64.c
                 _ctypes/libffi/src/${_libffi_system_dir}/unix64.S
                 )
-        elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "i686")
-          set(_libffi_system_extra_src
-                _ctypes/libffi/src/${_libffi_system_dir}/win32.S
-                )
         endif()
-        # To facilitate an eventual contribution of the configuration
-        # of fficonfig.h to the upstream project, corresponding tests
-        # in ConfigureChecks.cmake are labeled using this convention:
-        # * "libffi specific"
-        # * "libffi and cpython"
-        set(LIBFFI_VERSION "3.1")
-        configure_file(
-          ${PROJECT_SOURCE_DIR}/cmake/fficonfig.h.in
-          ${INCLUDE_BUILD_DIR}/fficonfig.h
-          )
         add_python_extension(_ctypes
-            SOURCES ${ctypes_COMMON_SOURCES}
+            SOURCES _ctypes/_ctypes.c
+                    _ctypes/callbacks.c
+                    _ctypes/callproc.c
+                    _ctypes/cfield.c
                     _ctypes/libffi/src/closures.c
                     _ctypes/libffi/src/prep_cif.c
+                    _ctypes/stgdict.c
                     _ctypes/libffi/src/${_libffi_system_dir}/ffi.c
                     _ctypes/libffi/src/${_libffi_system_dir}/sysv.S
                     ${_libffi_system_extra_src}
             INCLUDEDIRS ${SRC_DIR}/Modules/_ctypes/libffi/src/${_libffi_system_dir}
                         ${SRC_DIR}/Modules/_ctypes/libffi/include
-                        ${INCLUDE_BUILD_DIR}      # For fficonfig.h
-                        ${PROJECT_SOURCE_DIR}/cmake # For ffi.h
+                        ${CMAKE_SOURCE_DIR}/cmake # For ffi.h and fficonfig.h
         )
     endif()
 endif()
@@ -340,7 +324,7 @@ set(libmpdec_config_x64          CONFIG_64 ASM)
 set(libmpdec_config_uint128      CONFIG_64 ANSI HAVE_UINT128_T)
 set(libmpdec_config_ansi64       CONFIG_64 ANSI)
 set(libmpdec_config_ppro         CONFIG_32 PPRO ASM)
-set(libmpdec_config_ansi32       CONFIG_32 PPRO) # XXX Is ANSI needed here ?
+set(libmpdec_config_ansi32       CONFIG_32 PPRO)
 set(libmpdec_config_ansi_legacy  CONFIG_32 ANSI LEGACY_COMPILER)
 set(libmpdec_config_universal    UNIVERSAL)
 
@@ -436,9 +420,6 @@ endif()
 # Uncomment for extra functionality:
 #list(APPEND libmpdec_config_${libmpdec_config} EXTRA_FUNCTIONALITY)
 
-if(ENABLE_DECIMAL)
-    message(STATUS "extension_decimal: libmpdec_config [${libmpdec_config}]")
-endif()
 add_python_extension(_decimal
     SOURCES
         _decimal/_decimal.c
@@ -449,7 +430,7 @@ add_python_extension(_decimal
     ${_decimal_LIBRARIES}
     ${_decimal_INCLUDEDIRS}
 )
-if(_decimal_compile_flags AND NOT BUILTIN_DECIMAL)
+if(_decimal_compile_flags)
     set_target_properties(extension_decimal PROPERTIES COMPILE_FLAGS ${_decimal_compile_flags})
 endif()
 
@@ -472,7 +453,7 @@ else()
     set(_pyexpat_definitions XML_STATIC)
     if(UNIX)
         list(APPEND _pyexpat_definitions HAVE_EXPAT_CONFIG_H)
-    elseif(WIN32)
+    elseif(MSVC)
         list(APPEND _pyexpat_definitions COMPILED_FROM_DSP)
     endif()
     add_python_extension(pyexpat
@@ -484,7 +465,7 @@ else()
         INCLUDEDIRS ${SRC_DIR}/Modules/expat
     )
     set(_elementtree_definitions USE_PYEXPAT_CAPI)
-    if(WIN32)
+    if(MSVC)
         list(APPEND _elementtree_definitions COMPILED_FROM_DSP)
     endif()
     add_python_extension(_elementtree
@@ -502,20 +483,20 @@ if(NOT WIN32 AND OPENSSL_LIBRARIES)
   set(HASH_NOT_AVAILABLE OFF)
 endif()
 
-add_python_extension(_md5 REQUIRES HASH_NOT_AVAILABLE ${WIN32_BUILTIN} SOURCES md5.c md5module.c)
-add_python_extension(_sha REQUIRES HASH_NOT_AVAILABLE ${WIN32_BUILTIN} SOURCES shamodule.c)
-add_python_extension(_sha256 REQUIRES HASH_NOT_AVAILABLE ${WIN32_BUILTIN} SOURCES sha256module.c)
-add_python_extension(_sha512 REQUIRES HASH_NOT_AVAILABLE ${WIN32_BUILTIN} SOURCES sha512module.c)
+add_python_extension(_md5 REQUIRES HASH_NOT_AVAILABLE ${MSVC_BUILTIN} SOURCES md5.c md5module.c)
+add_python_extension(_sha REQUIRES HASH_NOT_AVAILABLE ${MSVC_BUILTIN} SOURCES shamodule.c)
+add_python_extension(_sha256 REQUIRES HASH_NOT_AVAILABLE ${MSVC_BUILTIN} SOURCES sha256module.c)
+add_python_extension(_sha512 REQUIRES HASH_NOT_AVAILABLE ${MSVC_BUILTIN} SOURCES sha512module.c)
 
 else()
 
 # We always compile these even when OpenSSL is available (issue #14693).
 # It's harmless and the object code is tiny (40-50 KB per module,
 # only loaded when actually used).
-add_python_extension(_md5 ${WIN32_BUILTIN} SOURCES md5module.c)
-add_python_extension(_sha1 ${WIN32_BUILTIN} SOURCES sha1module.c)
-add_python_extension(_sha256 ${WIN32_BUILTIN} SOURCES sha256module.c)
-add_python_extension(_sha512 ${WIN32_BUILTIN} SOURCES sha512module.c)
+add_python_extension(_md5 ${MSVC_BUILTIN} SOURCES md5module.c)
+add_python_extension(_sha1 ${MSVC_BUILTIN} SOURCES sha1module.c)
+add_python_extension(_sha256 ${MSVC_BUILTIN} SOURCES sha256module.c)
+add_python_extension(_sha512 ${MSVC_BUILTIN} SOURCES sha512module.c)
 
 endif()
 
@@ -533,7 +514,7 @@ if(ZLIB_LIBRARY)
 endif()
 add_python_extension(binascii
     REQUIRES ${binascii_REQUIRES}
-    ${WIN32_BUILTIN}
+    ${MSVC_BUILTIN}
     SOURCES binascii.c
     DEFINITIONS ${binascii_DEFINITIONS}
     LIBRARIES ${binascii_LIBRARIES}
@@ -553,30 +534,19 @@ add_python_extension(${bz2_${PY_VERSION_MAJOR}_NAME}
     LIBRARIES ${BZIP2_LIBRARIES}
     INCLUDEDIRS ${BZIP2_INCLUDE_DIR}
 )
-set(curses_common_REQUIRES CURSES_LIBRARIES)
-set(curses_common_LIBRARIES ${CURSES_LIBRARIES})
-if(WITH_STATIC_DEPENDENCIES)
-    list(APPEND curses_common_REQUIRES TINFO_LIBRARY GPM_LIBRARY)
-    list(APPEND curses_common_LIBRARIES ${TINFO_LIBRARY} ${GPM_LIBRARY})
-endif()
 add_python_extension(_curses_panel
-    REQUIRES ${curses_common_REQUIRES} PANEL_LIBRARIES "HAVE_PANEL_H OR HAVE_NCURSES_PANEL_H"
+    REQUIRES CURSES_LIBRARIES PANEL_LIBRARIES "HAVE_PANEL_H OR HAVE_NCURSES_PANEL_H"
     SOURCES _curses_panel.c
-    LIBRARIES ${curses_common_LIBRARIES} ${PANEL_LIBRARIES}
+    LIBRARIES ${CURSES_LIBRARIES} ${PANEL_LIBRARIES}
 )
 add_python_extension(_curses
-    REQUIRES ${curses_common_REQUIRES}
+    REQUIRES CURSES_LIBRARIES
     SOURCES _cursesmodule.c
-    LIBRARIES ${curses_common_LIBRARIES}
+    LIBRARIES ${CURSES_LIBRARIES}
 )
 set(dbm2_SOURCES dbmmodule.c)
 set(dbm3_SOURCES _dbmmodule.c)
-if(IS_PY3)
-  set(dbm_name _dbm)
-else()
-  set(dbm_name dbm)
-endif()
-add_python_extension(${dbm_name}
+add_python_extension(dbm
     REQUIRES NDBM_TAG GDBM_LIBRARY GDBM_COMPAT_LIBRARY
     SOURCES ${dbm${PY_VERSION_MAJOR}_SOURCES}
     DEFINITIONS HAVE_${NDBM_TAG}_H
@@ -585,12 +555,7 @@ add_python_extension(${dbm_name}
 )
 set(gdbm2_SOURCES gdbmmodule.c)
 set(gdbm3_SOURCES _gdbmmodule.c)
-if(IS_PY3)
-  set(gdbm_name _gdbm)
-else()
-  set(gdbm_name gdbm)
-endif()
-add_python_extension(${gdbm_name}
+add_python_extension(gdbm
     REQUIRES GDBM_INCLUDE_PATH GDBM_LIBRARY GDBM_COMPAT_LIBRARY
     SOURCES ${gdbm${PY_VERSION_MAJOR}_SOURCES}
     DEFINITIONS HAVE_GDBM_DASH_NDBM_H
@@ -682,7 +647,7 @@ else()
     )
 endif()
 
-if(USE_LIBEDIT AND NOT BUILTIN_READLINE)
+if(USE_LIBEDIT)
     set_target_properties(extension_readline PROPERTIES
         COMPILE_DEFINITIONS "USE_LIBEDIT")
 endif()

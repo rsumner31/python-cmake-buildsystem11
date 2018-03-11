@@ -10,9 +10,9 @@ set(cmd "${cmd}print('Discovered %d tests' % len(filenames))\\n")
 set(cmd "${cmd}\")")
 
 add_custom_target(list_unittests
-    ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:python> -c "${cmd}"
+    $<TARGET_FILE:python> -c "${cmd}"
     DEPENDS python
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Display list of python unittests"
     VERBATIM
 )
@@ -84,12 +84,7 @@ list(APPEND unittests "test_codecmaps_kr")
 list(APPEND unittests "test_codecmaps_tw")
 list(APPEND unittests "test_codecs")
 list(APPEND unittests "test_codeop")
-if(PY_VERSION_PATCH LESS 12)
-  list(APPEND unittests "test_coding")
-  list(APPEND unittests "test_pep263")
-else()
-  list(APPEND unittests "test_source_encoding")
-endif()
+list(APPEND unittests "test_coding")
 list(APPEND unittests "test_coercion")
 list(APPEND unittests "test_collections")
 list(APPEND unittests "test_colorsys")
@@ -263,13 +258,9 @@ list(APPEND unittests "test_parser")
 list(APPEND unittests "test_pdb")
 list(APPEND unittests "test_peepholer")
 list(APPEND unittests "test_pep247")
+list(APPEND unittests "test_pep263")
 list(APPEND unittests "test_pep277")
-if(PY_VERSION_PATCH LESS 12)
-  list(APPEND unittests "test_pep292")
-else()
-  list(APPEND unittests "test_string")
-else()
-endif()
+list(APPEND unittests "test_pep292")
 list(APPEND unittests "test_pep352")
 list(APPEND unittests "test_pickle")
 list(APPEND unittests "test_pickletools")

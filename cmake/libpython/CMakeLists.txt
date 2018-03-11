@@ -2,7 +2,7 @@ add_definitions(-DPy_BUILD_CORE)
 add_definitions(-DNDEBUG)
 
 set(MODULE_SOURCES # Equivalent to MODULE_OBJS in Makefile.pre
-    ${PROJECT_BINARY_DIR}/CMakeFiles/config.c
+    ${CMAKE_BINARY_DIR}/CMakeFiles/config.c
     ${SRC_DIR}/Modules/gcmodule.c
     ${SRC_DIR}/Modules/main.c
 )
@@ -35,8 +35,6 @@ elseif(WIN32)
     elseif( (${MSVC}) AND ("${CMAKE_GENERATOR}" MATCHES "^Ninja") )
         set(PATHSEP "\;")
     elseif( (${MSVC}) AND ("${CMAKE_GENERATOR}" MATCHES "^NMake") )
-        set(PATHSEP "\;")
-    elseif(MINGW)
         set(PATHSEP "\;")
     else()
         set(PATHSEP ";")
@@ -145,7 +143,7 @@ endif()
 set(DYNLOAD_SOURCES
   )
 
-if(UNIX AND HAVE_DLOPEN)
+if(UNIX)
     list(APPEND DYNLOAD_SOURCES
         ${SRC_DIR}/Python/dynload_shlib.c
     )
@@ -169,8 +167,11 @@ endif()
 
 set(THREAD_SOURCES )
 if(WITH_THREAD)
+    set(THREAD2_SOURCES ${SRC_DIR}/Modules/threadmodule.c)
+    set(THREAD3_SOURCES ${SRC_DIR}/Modules/_threadmodule.c)
     list(APPEND THREAD_SOURCES
         ${SRC_DIR}/Python/thread.c
+        ${THREAD${PY_VERSION_MAJOR}_SOURCES}
     )
 endif()
 
@@ -347,22 +348,20 @@ foreach(ext ${builtin_extensions})
 endforeach()
 
 configure_file(
-    ${PROJECT_SOURCE_DIR}/cmake/config_${PY_VERSION_MAJOR}.c.in
-    ${PROJECT_BINARY_DIR}/CMakeFiles/config.c
+    ${CMAKE_SOURCE_DIR}/cmake/config_${PY_VERSION_MAJOR}.c.in
+    ${CMAKE_BINARY_DIR}/CMakeFiles/config.c
     )
 
 # Collect libpython target libraries
 set(LIBPYTHON_TARGET_LIBRARIES
+  ${HAVE_LIBDL}
   ${builtin_link_libraries}
   )
-if(HAVE_LIBDL)
-  list(APPEND LIBPYTHON_TARGET_LIBRARIES ${HAVE_LIBDL})
-endif()
 if(WITH_THREAD)
     list(APPEND LIBPYTHON_TARGET_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 endif()
 if(UNIX)
-    list(APPEND LIBPYTHON_TARGET_LIBRARIES ${LIBUTIL_LIBRARIES} ${M_LIBRARIES})
+    list(APPEND LIBPYTHON_TARGET_LIBRARIES ${HAVE_LIBUTIL} ${HAVE_LIBM})
 endif()
 if(WIN32 AND IS_PY3)
     list(APPEND LIBPYTHON_TARGET_LIBRARIES ws2_32) # Required by signalmodule
@@ -386,11 +385,11 @@ set(LIBPYTHON_FROZEN_SOURCES
 add_custom_command(
   OUTPUT ${LIBPYTHON_FROZEN_SOURCES}
   COMMAND
-    ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:_freeze_importlib>
+    $<TARGET_FILE:_freeze_importlib>
       ${SRC_DIR}/Lib/importlib/_bootstrap_external.py
       ${SRC_DIR}/Python/importlib_external.h
   COMMAND
-    ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:_freeze_importlib>
+    $<TARGET_FILE:_freeze_importlib>
       ${SRC_DIR}/Lib/importlib/_bootstrap.py
       ${SRC_DIR}/Python/importlib.h
   DEPENDS
@@ -436,7 +435,7 @@ if(UNIX)
 endif()
 
 # Build python libraries
-function(add_libpython name type install component)
+function(add_libpython name type)
     add_library(${name} ${type} ${LIBPYTHON_SOURCES})
     target_link_libraries(${name} ${LIBPYTHON_TARGET_LIBRARIES})
 
@@ -449,8 +448,8 @@ function(add_libpython name type install component)
 
     set_target_properties(${name} PROPERTIES
         OUTPUT_NAME ${LIBPYTHON}${ABIFLAGS}
-        LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR}
-        RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR}
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR}
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR}
         INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/${LIBPYTHON_LIBDIR}
     )
     if(HAVE_POSITION_INDEPENDENT_CODE)
@@ -462,20 +461,17 @@ function(add_libpython name type install component)
     # Export target
     set_property(GLOBAL APPEND PROPERTY PYTHON_TARGETS ${name})
 
-    if(install)
-        install(TARGETS ${name} EXPORT PythonTargets
-            ARCHIVE DESTINATION ${LIBPYTHON_ARCHIVEDIR}
-            LIBRARY DESTINATION ${LIBPYTHON_LIBDIR}
-            RUNTIME DESTINATION ${LIBPYTHON_LIBDIR}
-            COMPONENT ${component}
-        )
-    endif()
+    install(TARGETS ${name} EXPORT PythonTargets
+        ARCHIVE DESTINATION ${LIBPYTHON_ARCHIVEDIR}
+        LIBRARY DESTINATION ${LIBPYTHON_LIBDIR}
+        RUNTIME DESTINATION ${LIBPYTHON_LIBDIR}
+    )
 endfunction()
 
-if(BUILD_LIBPYTHON_SHARED)
-    add_libpython(libpython-shared SHARED 1 Runtime)
+if(BUILD_SHARED)
+    add_libpython(libpython-shared SHARED)
     set_target_properties(libpython-shared PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}
     )
     if(APPLE)
         # HACK For python <= 2.7.3, this fix link error related to undefined _environ symbol and
@@ -493,7 +489,7 @@ if(BUILD_LIBPYTHON_SHARED)
         # XXX Add BuildPython3_dDef
 
         # Generate 'python3stub.def'
-        set(pythonstub_def ${PROJECT_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}/${CMAKE_CFG_INTDIR}/python3stub.def)
+        set(pythonstub_def ${CMAKE_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}/${CMAKE_CFG_INTDIR}/python3stub.def)
         add_custom_command(
             OUTPUT ${pythonstub_def}
             COMMAND ${CMAKE_COMMAND}
@@ -510,14 +506,14 @@ if(BUILD_LIBPYTHON_SHARED)
         add_library(${targetname} SHARED ${SRC_DIR}/PC/python3dll.c ${SRC_DIR}/PC/python3.def)
         set_target_properties(${targetname} PROPERTIES
             OUTPUT_NAME python3
-            LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR}
-            RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR}
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR}
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR}
             INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/${LIBPYTHON_LIBDIR}
         )
         add_dependencies(${targetname} generate_libpythonstub_def)
 
         # Build 'python3stub.lib' before linking 'python3.dll'
-        set(python3stub_lib ${PROJECT_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}/${CMAKE_CFG_INTDIR}/python3stub.lib)
+        set(python3stub_lib ${CMAKE_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}/${CMAKE_CFG_INTDIR}/python3stub.lib)
         set(machine X86)
         if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
             set(machine X64)
@@ -537,8 +533,8 @@ if(BUILD_LIBPYTHON_SHARED)
         set_target_properties(${targetname} PROPERTIES
             LINK_FLAGS "-Wl,--no-as-needed"
             OUTPUT_NAME python3
-            LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR}
-            RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR}
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR}
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR}
             INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/${LIBPYTHON_LIBDIR}
         )
         target_link_libraries(${targetname} libpython-shared)
@@ -557,8 +553,8 @@ if(BUILD_LIBPYTHON_SHARED)
 
 endif()
 
-if(NOT BUILD_LIBPYTHON_SHARED)
-    add_libpython(libpython-static STATIC ${INSTALL_DEVELOPMENT} Development)
+if(BUILD_STATIC)
+    add_libpython(libpython-static STATIC)
     if(HAVE_TARGET_COMPILE_DEFINITIONS)
         target_compile_definitions(libpython-static PUBLIC Py_NO_ENABLE_SHARED)
     else()
@@ -567,11 +563,8 @@ if(NOT BUILD_LIBPYTHON_SHARED)
         )
     endif()
     set_target_properties(libpython-static PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_STATIC_ARCHIVEDIR}
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIBPYTHON_STATIC_ARCHIVEDIR}
     )
-    if(INSTALL_DEVELOPMENT)
-        install(TARGETS libpython-static
-            ARCHIVE DESTINATION ${PYTHONHOME}/config/
-            COMPONENT Development)
-    endif()
+    install(TARGETS libpython-static ARCHIVE DESTINATION ${PYTHONHOME}/config/)
+
 endif()

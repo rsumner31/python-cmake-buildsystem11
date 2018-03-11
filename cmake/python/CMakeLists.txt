@@ -13,14 +13,11 @@ set_property(
 
 # Link against the shared libpython if it was built, otherwise use the static
 # version.
-if(BUILD_LIBPYTHON_SHARED)
+if(BUILD_SHARED)
     target_link_libraries(python libpython-shared)
 else()
     target_link_libraries(python libpython-static)
-    set_target_properties(python PROPERTIES
-        COMPILE_DEFINITIONS Py_NO_ENABLE_SHARED
-        ENABLE_EXPORTS ON
-    )
+    set_target_properties(python PROPERTIES COMPILE_DEFINITIONS Py_NO_ENABLE_SHARED)
 endif()
 
 if(MSVC)
@@ -52,13 +49,12 @@ if(UNIX AND PY_VERSION VERSION_GREATER "2.7.4")
     # Setup landmark allowing to run the interpreter from a build tree. See 'getpath.c' for details.
     add_custom_command(
         OUTPUT ${BIN_BUILD_DIR}/pybuilddir.txt ${EXTENSION_BUILD_DIR}/_sysconfigdata.py
-        COMMAND ${PYTHON_WRAPPER_COMMAND}
-          ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:python> -E -S -m sysconfig --generate-posix-vars
+        COMMAND ${PYTHON_WRAPPER_COMMAND} $<TARGET_FILE:python> -E -S -m sysconfig --generate-posix-vars
         COMMAND ${CMAKE_COMMAND}
           -DBIN_BUILD_DIR:PATH=${BIN_BUILD_DIR}
-          -DPYTHON_BINARY_DIR:PATH=${PROJECT_BINARY_DIR}
+          -DPYTHON_BINARY_DIR:PATH=${CMAKE_BINARY_DIR}
           -DEXTENSION_INSTALL_DIR:PATH=${EXTENSION_INSTALL_DIR}
-          -P ${PROJECT_SOURCE_DIR}/cmake/UpdateSysconfig.cmake
+          -P ${CMAKE_SOURCE_DIR}/cmake/UpdateSysconfig.cmake
         COMMENT "Relocate _sysconfigdata.py and update pybuilddir.txt"
         WORKING_DIRECTORY ${BIN_BUILD_DIR}
         DEPENDS python
@@ -70,7 +66,7 @@ if(UNIX AND PY_VERSION VERSION_GREATER "2.7.4")
         DESTINATION ${PYTHONHOME}/)
 endif()
 
-if(UNIX AND NOT CMAKE_CROSSCOMPILING)
+if(UNIX)
   install(CODE
 "message(STATUS \"Creating Python executable symlinks...\")
 execute_process(
@@ -96,6 +92,4 @@ configure_file(
     ${BIN_BUILD_DIR}/python-gdb.py
     COPYONLY
 )
-if(INSTALL_DEVELOPMENT)
-    install(FILES ${SRC_GDB_HOOKS} DESTINATION ${BIN_INSTALL_DIR} COMPONENT Development)
-endif()
+install(FILES ${SRC_GDB_HOOKS} DESTINATION ${BIN_INSTALL_DIR} COMPONENT Runtime)

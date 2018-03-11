@@ -17,8 +17,7 @@ foreach(file ${libfiles})
     # Exclude tests if BUILD_TESTING is OFF
     string(REGEX MATCH "^test" is_test "${file}")
     set(include_file 1)
-
-    if(is_test AND (NOT BUILD_TESTING OR NOT INSTALL_TEST))
+    if(NOT BUILD_TESTING AND is_test)
         set(include_file 0)
     endif()
 
@@ -26,8 +25,8 @@ foreach(file ${libfiles})
         get_filename_component(path ${file} PATH)
 
         # Copy lib files to build tree
-        file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${PYTHONHOME}/${path})
-        file(COPY ${libdir}/${file} DESTINATION ${PROJECT_BINARY_DIR}/${PYTHONHOME}/${path})
+        file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/${PYTHONHOME}/${path})
+        file(COPY ${libdir}/${file} DESTINATION ${CMAKE_BINARY_DIR}/${PYTHONHOME}/${path})
 
         # Install
         install(FILES ${libdir}/${file} DESTINATION ${PYTHONHOME}/${path})

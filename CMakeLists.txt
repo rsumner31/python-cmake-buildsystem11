@@ -1,11 +1,8 @@
 cmake_minimum_required(VERSION 2.8.6)
 
-set(PYTHON_VERSION "3.5.2" CACHE STRING "The version of Python to build.")
-
-string(REPLACE "." ";" VERSION_LIST ${PYTHON_VERSION})
-list(GET VERSION_LIST 0 PY_VERSION_MAJOR)
-list(GET VERSION_LIST 1 PY_VERSION_MINOR)
-list(GET VERSION_LIST 2 PY_VERSION_PATCH)
+set(PY_VERSION_MAJOR 2 CACHE STRING "Python major version")
+set(PY_VERSION_MINOR 7 CACHE STRING "Python minor version")
+set(PY_VERSION_PATCH 11 CACHE STRING "Python patch version")
 set(PY_VERSION "${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}.${PY_VERSION_PATCH}")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -29,10 +26,6 @@ if(POLICY CMP0042)
     cmake_policy(SET CMP0042 OLD)
 endif()
 
-if(CMAKE_CROSSCOMPILING)
-    cmake_minimum_required(VERSION 3.3) # Version introducing CROSSCOMPILING_EMULATOR
-endif()
-
 # Include helper functions
 include(cmake/CMakeChecks.cmake)
 include(cmake/Extensions.cmake)
@@ -42,46 +35,19 @@ include(CTest)
 
 # Options
 option(DOWNLOAD_SOURCES "Automatically download the Python sources" ON)
-set(_build_libpython_shared_default  0)
-set(_build_libpython_shared_desc "Build libpython as a shared library")
-
-if(DEFINED BUILD_SHARED OR DEFINED BUILD_STATIC)
-  message(AUTHOR_WARNING "Deprecated options `BUILD_SHARED` or `BUILD_STATIC` are set, "
-                         "please change configure options to use `BUILD_LIBPYTHON_SHARED` instead.")
-  if(BUILD_SHARED AND BUILD_STATIC)
-    message(AUTHOR_WARNING "Both BUILD_SHARED and BUILD_STATIC options are set to ON. Forcing BUILD_SHARED to OFF")
-  endif()
-  if(BUILD_STATIC)
-    set(_build_libpython_shared_default  0)
-    set(_build_libpython_shared_desc "Intialized from `BUILD_STATIC` (deprecated)")
-  elseif(BUILD_SHARED)
-    set(_build_libpython_shared_default  1)
-    set(_build_libpython_shared_desc "Intialized from `BUILD_SHARED` (deprecated)")
-  endif()
-  message(AUTHOR_WARNING "Unsetting cache variables BUILD_SHARED and BUILD_STATIC")
-  unset(BUILD_SHARED CACHE)
-  unset(BUILD_STATIC CACHE)
-endif()
-
-option(BUILD_LIBPYTHON_SHARED ${_build_libpython_shared_desc} ${_build_libpython_shared_default})
+option(BUILD_SHARED "Build a shared libpython library" OFF)
+option(BUILD_STATIC "Build a static libpython library" ON)
 option(BUILD_EXTENSIONS_AS_BUILTIN "Default all modules as builtin to libpython" OFF)
 option(USE_LIB64 "Search for dependencies and install to prefix/lib64 instead of prefix/lib" OFF)
 if(WIN32)
   option(INSTALL_WINDOWS_TRADITIONAL "Install the executable and extensions in the traditional location" OFF)
-  set(_build_wininst_default ON)
-  if(CMAKE_CROSSCOMPILING)
-    set(_build_wininst_default OFF)
-  endif()
-  option(BUILD_WININST "Build 'Windows Installer' program for distutils if not already provided in the source tree." ${_build_wininst_default})
+  option(BUILD_WININST "Build 'Windows Installer' program for distutils if not already provided in the source tree." ON)
   cmake_dependent_option(BUILD_WININST_ALWAYS "Always build 'Windows installer' program even if provided in the source tree." OFF "BUILD_WININST" OFF)
 else()
   set(INSTALL_WINDOWS_TRADITIONAL OFF)
   set(BUILD_WININST OFF)
   set(BUILD_WININST_ALWAYS OFF)
 endif()
-option(INSTALL_DEVELOPMENT "Install files required to develop C extensions" ON)
-option(INSTALL_MANUAL "Install man files" ON)
-option(INSTALL_TEST "Install test files" ON)
 
 # Append an item to a string if it does not already contain it.  Any additional
 # arguments are treated as extra "set" arguments
@@ -114,6 +80,7 @@ cmake_dependent_option(USE_SYSTEM_ZLIB "Use system ZLIB" ${_use_system_zlib_defa
 cmake_dependent_option(USE_SYSTEM_DB "Use system DB" ON "USE_SYSTEM_LIBRARIES" OFF)
 cmake_dependent_option(USE_SYSTEM_GDBM "Use system GDBM" ON "USE_SYSTEM_LIBRARIES" OFF)
 cmake_dependent_option(USE_SYSTEM_READLINE "Use system READLINE" ON "USE_SYSTEM_LIBRARIES" OFF)
+cmake_dependent_option(USE_SYSTEM_SQLITE3 "Use system SQLITE3" ON "USE_SYSTEM_LIBRARIES" OFF)
 if(IS_PY3)
   cmake_dependent_option(USE_SYSTEM_LIBMPDEC "Use system LIBMPDEC" ON "USE_SYSTEM_LIBRARIES" OFF)
 endif()
@@ -129,31 +96,6 @@ option(WITH_DOC_STRINGS "Enable if you want documentation strings in extension m
 set(Py_DEBUG OFF) # TODO - Build debugging interpreter
 option(WITH_PYMALLOC "Define if you want to compile in Python-specific mallocs" ON)
 option(WITH_THREAD "Compile in rudimentary thread support" ON)
-if(UNIX)
-    option(WITH_STATIC_DEPENDENCIES "Restrict extensions and external dependencies to static libraries" OFF)
-    if(WITH_STATIC_DEPENDENCIES)
-        if(NOT POLICY CMP0065)
-            set(_reason " because option supported only with CMake >= 3.4. Current CMAKE_VERSION [${CMAKE_VERSION}]")
-            set(WITH_STATIC_DEPENDENCIES OFF CACHE BOOL "Forced to OFF${_reason}" FORCE)
-            message(WARNING "Forcing WITH_STATIC_DEPENDENCIES to OFF${_reason}")
-        else()
-            cmake_policy(SET CMP0065 NEW)
-
-            set(_reason " because of WITH_STATIC_DEPENDENCIES=ON")
-
-            set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
-            message(STATUS "Setting CMAKE_FIND_LIBRARY_SUFFIXES to \"${CMAKE_STATIC_LIBRARY_SUFFIX}\"${_reason}")
-
-            set(BUILD_EXTENSIONS_AS_BUILTIN ON CACHE BOOL "Forced to ON${_reason}" FORCE)
-            message(STATUS "Setting BUILD_EXTENSIONS_AS_BUILTIN to ON${_reason}")
-
-            set(BUILD_LIBPYTHON_SHARED OFF CACHE BOOL "Forced to OFF${_reason}" FORCE)
-            message(STATUS "Setting BUILD_LIBPYTHON_SHARED to OFF${_reason}")
-        endif()
-    endif()
-else()
-    set(WITH_STATIC_DEPENDENCIES 0)
-endif()
 
 # Detect source directory
 set(_landmark "pyconfig.h.in") # CMake will look for this file.
@@ -187,9 +129,7 @@ set(_download_2.7.8_md5 "d4bca0159acb0b44a781292b5231936f")
 set(_download_2.7.9_md5 "5eebcaa0030dc4061156d3429657fb83")
 set(_download_2.7.10_md5 "d7547558fd673bd9d38e2108c6b42521")
 set(_download_2.7.11_md5 "6b6076ec9e93f05dd63e47eb9c15728b")
-set(_download_2.7.12_md5 "88d61f82e3616a4be952828b3694109d")
 set(_download_3.5.1_md5 "be78e48cdfc1a7ad90efff146dce6cfe")
-set(_download_3.5.2_md5 "3fe8434643a78630c61c6464fe2e7e72")
 set(_extracted_dir "Python-${PY_VERSION}")
 
 if(NOT EXISTS ${SRC_DIR}/${_landmark} AND DOWNLOAD_SOURCES)
@@ -243,12 +183,12 @@ string(REGEX REPLACE "([0-9])\\..+" "\\1"
     PY_VERSION_MAJOR ${_version})
 string(REGEX REPLACE "[0-9]\\.([0-9]+)\\..+" "\\1"
     PY_VERSION_MINOR ${_version})
-string(REGEX REPLACE "[0-9]\\.[0-9]+\\.([0-9]+)[+]?" "\\1"
+string(REGEX REPLACE "[0-9]\\.[0-9]+\\.([0-9]+)" "\\1"
     PY_VERSION_PATCH ${_version})
 set(PY_VERSION "${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}.${PY_VERSION_PATCH}")
 message(STATUS "PY_VERSION: ${PY_VERSION}")
 if(NOT DEFINED _download_${PY_VERSION}_md5)
-    message(FATAL_ERROR "error: unknown python version '${PY_VERSION}'. Valid version should match '2.7.[3-12]' or '3.5.[1-2]'")
+    message(FATAL_ERROR "error: unknown python version '${PY_VERSION}'. Valid version should match '2.7.[3-10]'")
 endif()
 
 # Convenience boolean variables to easily test python version
@@ -276,18 +216,22 @@ endif()
 
 if(IS_PY3)
 set(WITH_HASH_ALGORITHM "default" CACHE STRING "Define hash algorithm for str, bytes and memoryview.")
-set_property(CACHE WITH_HASH_ALGORITHM PROPERTY STRINGS "default" "siphash24" "fnv")
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "default" "siphash24" "fnv")
 endif()
 
 # This is the major version number of Python
 set(LIBPYTHON_VERSION ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR})
-if(WIN32)
+if(MSVC)
     set(LIBPYTHON_VERSION ${PY_VERSION_MAJOR}${PY_VERSION_MINOR})
 endif()
 set(LIBPYTHON python${LIBPYTHON_VERSION})
 
 # Proceed to the configure checks
 include(cmake/ConfigureChecks.cmake)
+
+if(NOT BUILD_SHARED AND NOT BUILD_STATIC)
+    message(FATAL_ERROR "One or both of BUILD_SHARED or BUILD_STATIC must be set")
+endif()
 
 # Set PYTHONHOME
 set(LIBDIR "Lib") # See Lib/distutils/sysconfig.py - function 'get_python_lib'
@@ -318,9 +262,9 @@ if(MSVC)
     set(INCLUDE_INSTALL_DIR include)
 endif()
 # Build tree directory
-set(BIN_BUILD_DIR ${PROJECT_BINARY_DIR}/bin)
-set(CONFIG_BUILD_DIR ${PROJECT_BINARY_DIR}/${CONFIG_INSTALL_DIR})
-set(EXTENSION_BUILD_DIR ${PROJECT_BINARY_DIR}/${PYTHONHOME}/lib-dynload)
+set(BIN_BUILD_DIR ${CMAKE_BINARY_DIR}/bin)
+set(CONFIG_BUILD_DIR ${CMAKE_BINARY_DIR}/${CONFIG_INSTALL_DIR})
+set(EXTENSION_BUILD_DIR ${CMAKE_BINARY_DIR}/${PYTHONHOME}/lib-dynload)
 set(INCLUDE_BUILD_DIR ${SRC_DIR}/Include)
 
 set(ARCHIVEDIR "libs")      # Contains the static (*.a) and import libraries (*.lib)
@@ -348,29 +292,13 @@ elseif(WIN32)
                                           # live along side the python executable.
                                           # See function '_init_posix()' and '_init_non_posix()'
                                           # in 'Lib/sysconfig.py'
-    if(MINGW)
-      set(PYCONFIG_BUILD_DIR cmake/config-mingw)
-    endif()
 endif()
-
-# Install 'pyconfig.h'
-if(INSTALL_DEVELOPMENT)
-    install(FILES ${PYCONFIG_BUILD_DIR}/pyconfig.h
-            DESTINATION ${INCLUDE_INSTALL_DIR}/
-            COMPONENT Development)
-endif()
-
-# Set include directories
-include_directories(${INCLUDE_BUILD_DIR})
-include_directories(${PYCONFIG_BUILD_DIR})
-include_directories(${SRC_DIR}/Python)
 
 # Install 'pyconfig.h'
 install(FILES ${PYCONFIG_BUILD_DIR}/pyconfig.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/)
 
 # Set include directories
-include_directories(cmake)
 include_directories(${INCLUDE_BUILD_DIR})
 include_directories(${PYCONFIG_BUILD_DIR})
 include_directories(${SRC_DIR}/Python)
@@ -403,7 +331,7 @@ if(NOT HAVE_POSITION_INDEPENDENT_CODE AND NOT WIN32)
 endif()
 
 # Useful additional variables that extensions can use.
-if(CMAKE_SYSTEM MATCHES Linux)
+if(UNIX AND NOT APPLE)
     set(LINUX ON)
 else()
     set(LINUX OFF)
@@ -415,12 +343,12 @@ file(WRITE ${CONFIG_BUILD_DIR}/PythonTargets.cmake "")
 # Define python executable wrapper command to ensure
 # python executable resolves the expected python library.
 set(PYTHON_WRAPPER_COMMAND )
-if(BUILD_LIBPYTHON_SHARED AND UNIX)
+if(BUILD_SHARED AND UNIX)
     set(_envvar LD_LIBRARY_PATH)
     if(APPLE)
         set(_envvar DYLD_LIBRARY_PATH)
     endif()
-    set(PYTHON_WRAPPER_COMMAND env ${_envvar}=${PROJECT_BINARY_DIR}/${LIBPYTHON_LIBDIR})
+    set(PYTHON_WRAPPER_COMMAND env ${_envvar}=${CMAKE_BINARY_DIR}/${LIBPYTHON_LIBDIR})
 endif()
 
 # Add extension modules
@@ -440,7 +368,7 @@ endif()
 # Add target to run "Argument Clinic" over all source files
 if(IS_PY3)
 add_custom_target(clinic
-    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:python> ${SRC_DIR}/Tools/clinic/clinic.py --make
+    COMMAND $<TARGET_FILE:python> ${SRC_DIR}/Tools/clinic/clinic.py --make
     DEPENDS python
     WORKING_DIRECTORY ${SRC_DIR}
     COMMENT "Running 'Argument Clinic' over all source files"
@@ -450,7 +378,7 @@ endif()
 
 # Add target to generate 'Include/graminit.h' and 'Python/graminit.c'
 add_custom_target(generate_graminit
-    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:pgen>
+    COMMAND $<TARGET_FILE:pgen>
         ${SRC_DIR}/Grammar/Grammar
         ${PROJECT_BINARY_DIR}/CMakeFiles/graminit.h
         ${PROJECT_BINARY_DIR}/CMakeFiles/graminit.c
@@ -461,43 +389,43 @@ add_custom_target(generate_graminit
         ${PROJECT_BINARY_DIR}/CMakeFiles/graminit.c
         ${SRC_DIR}/Python/graminit.c
     DEPENDS pgen
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Include/graminit.h' and '${SRC_DIR}/Python/graminit.c'."
     VERBATIM
 )
 
 # Add target to generate 'opcode.h' header file
 add_custom_target(generate_opcode_h
-    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:python> ${SRC_DIR}/Tools/scripts/generate_opcode_h.py
+    COMMAND $<TARGET_FILE:python> ${SRC_DIR}/Tools/scripts/generate_opcode_h.py
         ${SRC_DIR}/Lib/opcode.py
         ${PROJECT_BINARY_DIR}/CMakeFiles/opcode.h
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${PROJECT_BINARY_DIR}/CMakeFiles/opcode.h
         ${SRC_DIR}/Include/opcode.h
     DEPENDS python
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Include/opcode.h'."
     VERBATIM
 )
 
 # Add target to generate 'Include/Python-ast.h' from 'Python.asdl'
 add_custom_target(generate_python_ast_h
-    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:python> ${SRC_DIR}/Parser/asdl_c.py
+    COMMAND $<TARGET_FILE:python> ${SRC_DIR}/Parser/asdl_c.py
         -h ${SRC_DIR}/Include
         ${SRC_DIR}/Parser/Python.asdl
     DEPENDS python
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Include/Python-ast.h'"
     VERBATIM
 )
 
 # Add target to generate 'Python/Python-ast.c' from 'Python.asdl'
 add_custom_target(generate_python_ast_c
-    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:python> ${SRC_DIR}/Parser/asdl_c.py
+    COMMAND $<TARGET_FILE:python> ${SRC_DIR}/Parser/asdl_c.py
         -c ${SRC_DIR}/Python
         ${SRC_DIR}/Parser/Python.asdl
     DEPENDS python
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating '${SRC_DIR}/Python/Python-ast.c'"
     VERBATIM
 )
@@ -525,19 +453,16 @@ if(UNIX)
 
     # python.pc
     configure_file(cmake/python.pc.in
-                  ${PROJECT_BINARY_DIR}/Misc/python-${LIBPYTHON_VERSION}.pc @ONLY)
+                  ${CMAKE_BINARY_DIR}/Misc/python-${LIBPYTHON_VERSION}.pc @ONLY)
     configure_file(cmake/python.pc.in
-                  ${PROJECT_BINARY_DIR}/Misc/python-${PY_VERSION_MAJOR}.pc @ONLY)
+                  ${CMAKE_BINARY_DIR}/Misc/python-${PY_VERSION_MAJOR}.pc @ONLY)
     configure_file(cmake/python.pc.in
-                  ${PROJECT_BINARY_DIR}/Misc/python.pc @ONLY)
-    if(INSTALL_DEVELOPMENT)
-        install(FILES
-                    ${PROJECT_BINARY_DIR}/Misc/python-${LIBPYTHON_VERSION}.pc
-                    ${PROJECT_BINARY_DIR}/Misc/python-${PY_VERSION_MAJOR}.pc
-                    ${PROJECT_BINARY_DIR}/Misc/python.pc
-                DESTINATION lib/pkgconfig
-                COMPONENT Development)
-    endif()
+                  ${CMAKE_BINARY_DIR}/Misc/python.pc @ONLY)
+    install(FILES
+                ${CMAKE_BINARY_DIR}/Misc/python-${LIBPYTHON_VERSION}.pc
+                ${CMAKE_BINARY_DIR}/Misc/python-${PY_VERSION_MAJOR}.pc
+                ${CMAKE_BINARY_DIR}/Misc/python.pc
+            DESTINATION lib/pkgconfig)
 
     # Makefile
     set(MAKEFILE_LDSHARED_FLAGS "-shared")
@@ -546,26 +471,18 @@ if(UNIX)
     endif()
     configure_file(cmake/makefile-variables.in
                    ${BIN_BUILD_DIR}/Makefile @ONLY)
-    if(INSTALL_DEVELOPMENT)
-        install(FILES ${BIN_BUILD_DIR}/Makefile
-                DESTINATION ${PYTHONHOME}/config/
-                RENAME Makefile
-                COMPONENT Development)
-    endif()
+    install(FILES ${BIN_BUILD_DIR}/Makefile
+            DESTINATION ${PYTHONHOME}/config/
+            RENAME Makefile)
 
     # Utility scripts
-    if(INSTALL_DEVELOPMENT)
-        install(FILES ${SRC_DIR}/install-sh ${SRC_DIR}/Modules/makesetup
-                DESTINATION ${PYTHONHOME}/config/
-                COMPONENT Development)
-    endif()
+    install(FILES ${SRC_DIR}/install-sh ${SRC_DIR}/Modules/makesetup
+            DESTINATION ${PYTHONHOME}/config/)
 
     # Install manual
-    if(INSTALL_MANUAL)
-        set(_install_man FILES ${SRC_DIR}/Misc/python.man DESTINATION share/man/man1 COMPONENT Runtime)
-        install(${_install_man} RENAME python${LIBPYTHON_VERSION}.1)
-        install(${_install_man} RENAME python${PY_VERSION_MAJOR}.1)
-    endif()
+    set(_install_man FILES ${SRC_DIR}/Misc/python.man DESTINATION share/man/man1 COMPONENT Runtime)
+    install(${_install_man} RENAME python${LIBPYTHON_VERSION}.1)
+    install(${_install_man} RENAME python${PY_VERSION_MAJOR}.1)
 
 endif()
 
@@ -577,14 +494,13 @@ install(CODE "file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${EXTENSION_INSTALL
 
 if(BUILD_TESTING)
     set(TESTOPTS -l)
-    set(TESTPROG ${PROJECT_BINARY_DIR}/${PYTHONHOME}/test/regrtest.py)
+    set(TESTPROG ${CMAKE_BINARY_DIR}/${PYTHONHOME}/test/regrtest.py)
     set(TESTPYTHONOPTS )
     if(IS_PY2)
       set(TESTPYTHON $<TARGET_FILE:python> -Wd -3 -E -tt ${TESTPYTHONOPTS})
     else()
       set(TESTPYTHON $<TARGET_FILE:python> ${TESTPYTHONOPTS})
     endif()
-    set(TESTPYTHON ${CMAKE_CROSSCOMPILING_EMULATOR} ${TESTPYTHON})
     include(cmake/UnitTests.cmake)
     foreach(unittest ${unittests})
       set(EXTRATESTOPTS -v)
@@ -609,7 +525,7 @@ set(python_config ${CONFIG_BUILD_DIR}/PythonConfig.cmake)
 configure_package_config_file(
     cmake/PythonConfig.cmake.in
     ${python_config}
-    INSTALL_DESTINATION ${PROJECT_BINARY_DIR}
+    INSTALL_DESTINATION ${CMAKE_BINARY_DIR}
     PATH_VARS CONFIG_DIR_CONFIG INCLUDE_DIR_CONFIG
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
@@ -618,7 +534,7 @@ configure_package_config_file(
 set(CONFIG_DIR_CONFIG ${CONFIG_INSTALL_DIR})
 set(INCLUDE_DIR_CONFIG ${INCLUDE_INSTALL_DIR})
 set(PYTHON_CONFIG_CODE "")
-set(python_install_config ${PROJECT_BINARY_DIR}/CMakeFiles/PythonConfig.cmake)
+set(python_install_config ${CMAKE_BINARY_DIR}/CMakeFiles/PythonConfig.cmake)
 configure_package_config_file(
     cmake/PythonConfig.cmake.in
     ${python_install_config}
@@ -638,19 +554,13 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
-if(INSTALL_DEVELOPMENT)
-    # Install 'PythonTargets.cmake', 'PythonConfig.cmake' and 'PythonConfigVersion.cmake
-    install(EXPORT PythonTargets
-        FILE PythonTargets.cmake
-        DESTINATION ${CONFIG_INSTALL_DIR} COMPONENT Development)
+# Install 'PythonTargets.cmake', 'PythonConfig.cmake' and 'PythonConfigVersion.cmake
+install(EXPORT PythonTargets FILE PythonTargets.cmake DESTINATION ${CONFIG_INSTALL_DIR})
 
-    install(
-        FILES ${python_install_config} ${python_config_version}
-        DESTINATION ${CONFIG_INSTALL_DIR} COMPONENT Development
-    )
-endif()
-
-endif()
+install(
+    FILES ${python_install_config} ${python_config_version}
+    DESTINATION ${CONFIG_INSTALL_DIR} COMPONENT Development
+)
 
 # Install License
 set(license_destination ${PYTHONHOME})
@@ -658,3 +568,5 @@ if(INSTALL_WINDOWS_TRADITIONAL)
   set(license_destination .)
 endif()
 install(FILES ${SRC_DIR}/LICENSE DESTINATION ${license_destination} COMPONENT Runtime RENAME LICENSE.txt)
+
+endif()
