@@ -557,7 +557,7 @@ add_python_extension(_hashlib
     LIBRARIES ${OPENSSL_LIBRARIES}
     INCLUDEDIRS ${OPENSSL_INCLUDE_DIR}
 )
-if(ENABLE_HASHLIB AND UNIX)
+if(ENABLE_HASHLIB AND CMAKE_C_COMPILER_ID MATCHES GNU)
     set_property(SOURCE ${SRC_DIR}/Modules/_hashopenssl.c PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations)
 endif()
 add_python_extension(readline
@@ -581,7 +581,7 @@ add_python_extension(_sqlite3
     INCLUDEDIRS ${SQLITE3_INCLUDE_PATH}
     LIBRARIES ${SQLITE3_LIBRARY}
 )
-if(ENABLE_SQLITE3 AND UNIX)
+if(ENABLE_SQLITE3 AND CMAKE_C_COMPILER_ID MATCHES GNU)
     set_property(SOURCE ${SRC_DIR}/Modules/_sqlite/module.c PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations)
 endif()
 set(_ssl_LIBRARIES ${OPENSSL_LIBRARIES})
