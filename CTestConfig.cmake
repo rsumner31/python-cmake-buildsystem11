@@ -2,7 +2,7 @@
 set(CTEST_PROJECT_NAME "Python")
 =======
 set(CTEST_PROJECT_NAME "Python27")
->>>>>>>-4ee6f7b
+>>>>>>> 4ee6f7b... Add BUILD_TESTING option allowing to submit configure and build to CDash
 set(CTEST_NIGHTLY_START_TIME "3:00:00 UTC")
 
 set(CTEST_DROP_METHOD "http")
