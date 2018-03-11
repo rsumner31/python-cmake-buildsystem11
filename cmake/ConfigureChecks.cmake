@@ -1074,6 +1074,10 @@ set(HAVE_RO_EH_FRAME 1)
 # TODO
 set(SYMBOL_UNDERSCORE 0)
 
+# libffi specific: Check whether symbols are underscored
+# TODO
+set(SYMBOL_UNDERSCORE 0)
+
 # libffi specific: Check compiler for symbol visibility support
 check_c_source_compiles("
         __attribute__((visibility(\"default\")))
