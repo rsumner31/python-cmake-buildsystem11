@@ -256,7 +256,13 @@ set(CONFIG_BUILD_DIR ${CMAKE_BINARY_DIR}/${CONFIG_INSTALL_DIR})
 set(EXTENSION_BUILD_DIR ${CMAKE_BINARY_DIR}/${PYTHONHOME}/lib-dynload)
 set(INCLUDE_BUILD_DIR ${SRC_DIR}/Include)
 
-set(ARCHIVEDIR "libs")      # Contains the static (*.a) and import libraries (*.lib)
+# Find any dependencies
+find_package(BZip2)
+find_package(Curses)
+find_package(OpenSSL)
+find_package(TCL)
+find_package(Threads)
+find_package(ZLIB)
 
 # Directories specific to 'libpython'
 set(LIBPYTHON_LIBDIR ${LIBDIR})
